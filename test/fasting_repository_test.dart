@@ -23,6 +23,7 @@ void main() {
 
     expect(data.selectedPlan.id, '16-8');
     expect(data.sessions, isEmpty);
+    expect(data.glassEffectEnabled, isTrue);
   });
 
   test(
@@ -66,6 +67,22 @@ void main() {
     final repository = FastingRepository(store: store);
 
     await expectLater(repository.load(), throwsFormatException);
+  });
+
+  test('restores the glass setting and defaults it for older saved data', () {
+    final data = const FastingAppData(
+      selectedPlan: FastingAppData.defaultPlan,
+      sessions: [],
+      glassEffectEnabled: false,
+    );
+
+    final restored = FastingAppData.fromJson(data.toJson());
+    final olderData = FastingAppData.fromJson(
+      Map<String, dynamic>.from(data.toJson())..remove('glassEffectEnabled'),
+    );
+
+    expect(restored.glassEffectEnabled, isFalse);
+    expect(olderData.glassEffectEnabled, isTrue);
   });
 
   test('rejects multiple active sessions in saved data', () async {

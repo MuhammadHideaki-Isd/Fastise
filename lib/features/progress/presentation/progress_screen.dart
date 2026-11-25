@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../fasting/domain/fasting_session.dart';
@@ -54,7 +55,7 @@ class ProgressScreen extends StatelessWidget {
                       child: _MetricCard(
                         value: summary.completedSessionCount.toString(),
                         label: 'Sessions',
-                        icon: Icons.check_circle_outline,
+                        icon: PhosphorIconsRegular.checkCircle,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -62,7 +63,7 @@ class ProgressScreen extends StatelessWidget {
                       child: _MetricCard(
                         value: _formatDuration(summary.totalDuration),
                         label: 'Total fasting',
-                        icon: Icons.schedule,
+                        icon: PhosphorIconsRegular.clock,
                       ),
                     ),
                   ],
@@ -73,7 +74,7 @@ class ProgressScreen extends StatelessWidget {
                       ? '—'
                       : _formatDuration(summary.averageDuration!),
                   label: 'Average session duration',
-                  icon: Icons.timelapse,
+                  icon: PhosphorIconsRegular.timer,
                 ),
                 const SizedBox(height: 28),
                 Text(

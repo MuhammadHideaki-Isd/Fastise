@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../fasting/domain/fasting_plan.dart';
@@ -9,11 +10,17 @@ class ProfileScreen extends StatelessWidget {
     required this.selectedPlan,
     required this.hasActiveSession,
     required this.onEditPlan,
+    required this.glassEffectEnabled,
+    required this.onGlassEffectChanged,
+    required this.isBusy,
   });
 
   final FastingPlan selectedPlan;
   final bool hasActiveSession;
   final VoidCallback onEditPlan;
+  final bool glassEffectEnabled;
+  final ValueChanged<bool> onGlassEffectChanged;
+  final bool isBusy;
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +52,7 @@ class ProfileScreen extends StatelessWidget {
                 Card(
                   child: ListTile(
                     leading: const Icon(
-                      Icons.schedule,
+                      PhosphorIconsRegular.clock,
                       color: AppColors.primary,
                     ),
                     title: Text('${selectedPlan.label} fasting'),
@@ -53,7 +60,7 @@ class ProfileScreen extends StatelessWidget {
                       '${selectedPlan.fastingHours} hours fasting · '
                       '${selectedPlan.eatingHours} hours eating',
                     ),
-                    trailing: const Icon(Icons.chevron_right),
+                    trailing: const Icon(PhosphorIconsRegular.caretRight),
                     onTap: onEditPlan,
                   ),
                 ),
@@ -69,6 +76,24 @@ class ProfileScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 28),
+                _SectionLabel(label: 'APPEARANCE'),
+                const SizedBox(height: 10),
+                Card(
+                  child: SwitchListTile(
+                    key: const ValueKey('glass-effect-setting'),
+                    secondary: const Icon(
+                      PhosphorIconsRegular.sparkle,
+                      color: AppColors.primary,
+                    ),
+                    title: const Text('Liquid glass effect'),
+                    subtitle: const Text(
+                      'Use glass styling for the bottom navigation.',
+                    ),
+                    value: glassEffectEnabled,
+                    onChanged: isBusy ? null : onGlassEffectChanged,
+                  ),
+                ),
+                const SizedBox(height: 28),
                 _SectionLabel(label: 'ABOUT'),
                 const SizedBox(height: 10),
                 Card(
@@ -76,7 +101,7 @@ class ProfileScreen extends StatelessWidget {
                     children: [
                       const ListTile(
                         leading: Icon(
-                          Icons.hourglass_bottom,
+                          PhosphorIconsRegular.hourglass,
                           color: AppColors.primary,
                         ),
                         title: Text('Fastise'),
@@ -85,7 +110,7 @@ class ProfileScreen extends StatelessWidget {
                       const Divider(height: 1, indent: 56),
                       ListTile(
                         leading: const Icon(
-                          Icons.lock_outline,
+                          PhosphorIconsRegular.lock,
                           color: AppColors.primary,
                         ),
                         title: const Text('Privacy'),
@@ -108,7 +133,7 @@ class ProfileScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Icon(
-                          Icons.info_outline,
+                          PhosphorIconsRegular.info,
                           size: 20,
                           color: AppColors.primary,
                         ),

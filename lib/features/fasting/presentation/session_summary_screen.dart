@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../domain/fasting_session.dart';
@@ -21,7 +22,7 @@ class SessionSummaryScreen extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
           children: [
             const Icon(
-              Icons.check_circle_outline,
+              PhosphorIconsRegular.checkCircle,
               size: 56,
               color: AppColors.primary,
             ),

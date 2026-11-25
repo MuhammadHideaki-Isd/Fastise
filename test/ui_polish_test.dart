@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
 import 'package:fastise/app/app.dart';
 import 'package:fastise/features/fasting/data/fasting_repository.dart';
@@ -8,6 +10,13 @@ import 'package:fastise/features/fasting/domain/fasting_session.dart';
 import 'support/memory_string_store.dart';
 
 void main() {
+  setUpAll(() async {
+    await LiquidGlassWidgets.initialize(
+      enablePerformanceMonitor: false,
+      warmUpMode: GlassWarmUpMode.never,
+    );
+  });
+
   testWidgets('main screens stay usable on a compact display', (
     WidgetTester tester,
   ) async {
@@ -42,19 +51,38 @@ void main() {
     await tester.tap(homeProfileButton);
     await tester.pumpAndSettle();
     expect(
-      tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
+      tester.widget<GlassTabBar>(find.byType(GlassTabBar)).selectedIndex,
       3,
     );
     expect(tester.takeException(), isNull);
 
-    for (final tab in ['Home', 'Progress', 'History']) {
-      await tester.tap(find.text(tab).last);
+    final tabIcons = [
+      PhosphorIconsRegular.house,
+      PhosphorIconsRegular.chartLineUp,
+      PhosphorIconsRegular.clockCounterClockwise,
+    ];
+    for (final icon in tabIcons) {
+      await tester.tapAt(
+        tester.getCenter(
+          find.descendant(
+            of: find.byType(GlassTabBar),
+            matching: find.byIcon(icon),
+          ),
+        ),
+      );
       await tester.pumpAndSettle();
       final error = tester.takeException();
-      expect(error, isNull, reason: '$tab should not overflow: $error');
+      expect(error, isNull, reason: 'Screen should not overflow: $error');
     }
 
-    await tester.tap(find.text('History').last);
+    await tester.tapAt(
+      tester.getCenter(
+        find.descendant(
+          of: find.byType(GlassTabBar),
+          matching: find.byIcon(PhosphorIconsRegular.clockCounterClockwise),
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('actual duration'));
     expect(find.text('36:00:00'), findsOneWidget);

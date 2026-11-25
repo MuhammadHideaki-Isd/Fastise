@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../fasting/domain/fasting_session.dart';
@@ -83,7 +84,7 @@ class _HistoryEmptyState extends StatelessWidget {
                 shape: BoxShape.circle,
               ),
               child: const Icon(
-                Icons.history,
+                PhosphorIconsRegular.clockCounterClockwise,
                 size: 34,
                 color: AppColors.primary,
               ),
@@ -199,12 +200,12 @@ class _HistorySessionCard extends StatelessWidget {
               runSpacing: 8,
               children: [
                 _SessionTime(
-                  icon: Icons.play_circle_outline,
+                  icon: PhosphorIconsRegular.playCircle,
                   text: 'Start ${_formatTime(context, session.startAt)}',
                   style: theme.textTheme.bodySmall,
                 ),
                 _SessionTime(
-                  icon: Icons.stop_circle_outlined,
+                  icon: PhosphorIconsRegular.stopCircle,
                   text: 'End ${_formatTime(context, endAt)}',
                   style: theme.textTheme.bodySmall,
                 ),

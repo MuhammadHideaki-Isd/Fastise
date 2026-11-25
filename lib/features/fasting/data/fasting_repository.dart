@@ -63,7 +63,11 @@ class FastingStorageException implements Exception {
 }
 
 class FastingAppData {
-  const FastingAppData({required this.selectedPlan, required this.sessions});
+  const FastingAppData({
+    required this.selectedPlan,
+    required this.sessions,
+    this.glassEffectEnabled = true,
+  });
 
   static const defaultPlan = FastingPlan(
     id: '16-8',
@@ -74,6 +78,7 @@ class FastingAppData {
 
   final FastingPlan selectedPlan;
   final List<FastingSession> sessions;
+  final bool glassEffectEnabled;
 
   FastingSession? get activeSession {
     for (final session in sessions) {
@@ -94,6 +99,7 @@ class FastingAppData {
     'version': 1,
     'selectedPlan': selectedPlan.toJson(),
     'sessions': sessions.map((session) => session.toJson()).toList(),
+    'glassEffectEnabled': glassEffectEnabled,
   };
 
   factory FastingAppData.fromJson(Map<String, dynamic> json) {
@@ -103,9 +109,11 @@ class FastingAppData {
 
     final selectedPlanData = json['selectedPlan'];
     final sessionsData = json['sessions'];
+    final glassEffectEnabled = json['glassEffectEnabled'];
     if (selectedPlanData is! Map ||
         sessionsData is! List ||
-        sessionsData.any((item) => item is! Map)) {
+        sessionsData.any((item) => item is! Map) ||
+        (glassEffectEnabled != null && glassEffectEnabled is! bool)) {
       throw const FormatException('Saved app data has an invalid structure.');
     }
 
@@ -127,7 +135,11 @@ class FastingAppData {
       throw const FormatException('Saved sessions violate state constraints.');
     }
 
-    return FastingAppData(selectedPlan: plan, sessions: sessions);
+    return FastingAppData(
+      selectedPlan: plan,
+      sessions: sessions,
+      glassEffectEnabled: glassEffectEnabled as bool? ?? true,
+    );
   }
 }
 

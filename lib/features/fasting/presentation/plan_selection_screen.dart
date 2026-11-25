@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../domain/fasting_plan.dart';
@@ -86,7 +87,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Icon(
-                          Icons.info_outline,
+                          PhosphorIconsRegular.info,
                           size: 20,
                           color: AppColors.primary,
                         ),
@@ -213,7 +214,11 @@ class _PlanCard extends StatelessWidget {
                   ),
                 ),
                 child: selected
-                    ? const Icon(Icons.check, size: 18, color: Colors.white)
+                    ? const Icon(
+                        PhosphorIconsRegular.check,
+                        size: 18,
+                        color: Colors.white,
+                      )
                     : null,
               ),
             ),

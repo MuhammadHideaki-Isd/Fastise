@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
 import '../features/fasting/data/fasting_repository.dart';
 import '../features/fasting/domain/fasting_plan.dart';
@@ -9,6 +11,7 @@ import '../features/home/presentation/home_screen.dart';
 import '../features/progress/presentation/progress_screen.dart';
 import '../features/history/presentation/history_screen.dart';
 import '../features/profile/presentation/profile_screen.dart';
+import 'theme/app_colors.dart';
 import 'theme/app_theme.dart';
 
 class FastiseApp extends StatelessWidget {
@@ -18,10 +21,13 @@ class FastiseApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Fasting Tracker',
-      theme: AppTheme.light(),
-      home: AppShell(repository: repository),
+    return LiquidGlassWidgets.wrap(
+      brightnessResolver: Theme.maybeBrightnessOf,
+      child: MaterialApp(
+        title: 'Fasting Tracker',
+        theme: AppTheme.light(),
+        home: AppShell(repository: repository),
+      ),
     );
   }
 }
@@ -42,6 +48,7 @@ class _AppShellState extends State<AppShell> {
   FastingPlan _selectedPlan = FastingAppData.defaultPlan;
   bool _isLoading = true;
   bool _isBusy = false;
+  bool _glassEffectEnabled = true;
   Object? _loadError;
 
   @override
@@ -70,6 +77,7 @@ class _AppShellState extends State<AppShell> {
       final data = await _repository.load();
       if (!mounted) return;
       _selectedPlan = data.selectedPlan;
+      _glassEffectEnabled = data.glassEffectEnabled;
       _sessionState.restore(
         activeSession: data.activeSession,
         completedSessions: data.completedSessions,
@@ -160,9 +168,13 @@ class _AppShellState extends State<AppShell> {
     }
   }
 
-  FastingAppData _currentData({FastingPlan? selectedPlan}) {
+  FastingAppData _currentData({
+    FastingPlan? selectedPlan,
+    bool? glassEffectEnabled,
+  }) {
     return FastingAppData(
       selectedPlan: selectedPlan ?? _selectedPlan,
+      glassEffectEnabled: glassEffectEnabled ?? _glassEffectEnabled,
       sessions: [
         ?_sessionState.activeSession,
         ..._sessionState.completedSessions,
@@ -188,6 +200,26 @@ class _AppShellState extends State<AppShell> {
     }
   }
 
+  Future<void> _setGlassEffectEnabled(bool enabled) async {
+    if (_isBusy || _isLoading || _loadError != null) return;
+    setState(() => _isBusy = true);
+    try {
+      await _repository.save(_currentData(glassEffectEnabled: enabled));
+      if (!mounted) return;
+      setState(() => _glassEffectEnabled = enabled);
+    } on FastingStorageException catch (error) {
+      _showMessage(error.message);
+    } finally {
+      if (mounted) {
+        setState(() => _isBusy = false);
+      }
+    }
+  }
+
+  void _selectTab(int index) {
+    setState(() => _selectedIndex = index);
+  }
+
   void _openPlanSelection() {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -205,6 +237,7 @@ class _AppShellState extends State<AppShell> {
       if (!mounted) return;
       setState(() {
         _selectedPlan = FastingAppData.defaultPlan;
+        _glassEffectEnabled = true;
         _loadError = null;
         _isLoading = false;
       });
@@ -239,7 +272,7 @@ class _AppShellState extends State<AppShell> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.error_outline, size: 40),
+                  const Icon(PhosphorIconsRegular.warningCircle, size: 40),
                   const SizedBox(height: 16),
                   Text(
                     'Could not load saved data',
@@ -282,39 +315,79 @@ class _AppShellState extends State<AppShell> {
         selectedPlan: _selectedPlan,
         hasActiveSession: _sessionState.activeSession != null,
         onEditPlan: _openPlanSelection,
+        glassEffectEnabled: _glassEffectEnabled,
+        onGlassEffectChanged: _setGlassEffectEnabled,
+        isBusy: _isBusy,
       ),
     ];
 
     return Scaffold(
-      body: IndexedStack(index: _selectedIndex, children: screens),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: (index) {
-          setState(() => _selectedIndex = index);
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.insights_outlined),
-            selectedIcon: Icon(Icons.insights),
-            label: 'Progress',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.history_outlined),
-            selectedIcon: Icon(Icons.history),
-            label: 'History',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
-      ),
+      body: _glassEffectEnabled
+          ? GlassScaffold(
+              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+              extendBody: false,
+              body: IndexedStack(index: _selectedIndex, children: screens),
+              bottomBar: GlassTabBar.bottom(
+                selectedIndex: _selectedIndex,
+                onTabSelected: _selectTab,
+                selectedIconColor: AppColors.primary,
+                unselectedIconColor: AppColors.textSecondary,
+                selectedLabelColor: AppColors.primaryDark,
+                unselectedLabelColor: AppColors.textSecondary,
+                indicatorColor: AppColors.primary.withValues(alpha: 0.12),
+                tabs: const [
+                  GlassTab(
+                    icon: Icon(PhosphorIconsRegular.house),
+                    activeIcon: Icon(PhosphorIconsFill.house),
+                    label: 'Home',
+                  ),
+                  GlassTab(
+                    icon: Icon(PhosphorIconsRegular.chartLineUp),
+                    activeIcon: Icon(PhosphorIconsFill.chartLineUp),
+                    label: 'Progress',
+                  ),
+                  GlassTab(
+                    icon: Icon(PhosphorIconsRegular.clockCounterClockwise),
+                    activeIcon: Icon(PhosphorIconsFill.clockCounterClockwise),
+                    label: 'History',
+                  ),
+                  GlassTab(
+                    icon: Icon(PhosphorIconsRegular.userCircle),
+                    activeIcon: Icon(PhosphorIconsFill.userCircle),
+                    label: 'Profile',
+                  ),
+                ],
+              ),
+            )
+          : IndexedStack(index: _selectedIndex, children: screens),
+      bottomNavigationBar: _glassEffectEnabled
+          ? null
+          : NavigationBar(
+              selectedIndex: _selectedIndex,
+              onDestinationSelected: _selectTab,
+              destinations: const [
+                NavigationDestination(
+                  icon: Icon(PhosphorIconsRegular.house),
+                  selectedIcon: Icon(PhosphorIconsFill.house),
+                  label: 'Home',
+                ),
+                NavigationDestination(
+                  icon: Icon(PhosphorIconsRegular.chartLineUp),
+                  selectedIcon: Icon(PhosphorIconsFill.chartLineUp),
+                  label: 'Progress',
+                ),
+                NavigationDestination(
+                  icon: Icon(PhosphorIconsRegular.clockCounterClockwise),
+                  selectedIcon: Icon(PhosphorIconsFill.clockCounterClockwise),
+                  label: 'History',
+                ),
+                NavigationDestination(
+                  icon: Icon(PhosphorIconsRegular.userCircle),
+                  selectedIcon: Icon(PhosphorIconsFill.userCircle),
+                  label: 'Profile',
+                ),
+              ],
+            ),
     );
   }
 }

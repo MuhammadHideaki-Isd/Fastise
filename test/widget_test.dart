@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
 import 'package:fastise/app/app.dart';
 import 'package:fastise/features/fasting/data/fasting_repository.dart';
@@ -9,6 +11,13 @@ import 'package:fastise/features/fasting/presentation/session_summary_screen.dar
 import 'support/memory_string_store.dart';
 
 void main() {
+  setUpAll(() async {
+    await LiquidGlassWidgets.initialize(
+      enablePerformanceMonitor: false,
+      warmUpMode: GlassWarmUpMode.never,
+    );
+  });
+
   testWidgets('shows the home foundation and bottom navigation', (
     WidgetTester tester,
   ) async {
@@ -27,9 +36,16 @@ void main() {
     );
     expect(find.text('RECENT ACTIVITY'), findsOneWidget);
     expect(find.text('No recent sessions'), findsOneWidget);
-    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(find.byType(GlassTabBar), findsOneWidget);
 
-    await tester.tap(find.text('History'));
+    await tester.tapAt(
+      tester.getCenter(
+        find.descendant(
+          of: find.byType(GlassTabBar),
+          matching: find.byIcon(PhosphorIconsRegular.clockCounterClockwise),
+        ),
+      ),
+    );
     await tester.pump();
     expect(find.text('History'), findsNWidgets(2));
   });
@@ -65,18 +81,30 @@ void main() {
     await tester.pumpWidget(FastiseApp(repository: repository));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Profile'));
+    await tester.tap(
+      find.descendant(
+        of: find.byType(GlassTabBar),
+        matching: find.text('Profile'),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('16:8 fasting'), findsOneWidget);
     expect(find.text('Fastise'), findsOneWidget);
     expect(find.textContaining('stored on this device'), findsOneWidget);
-    expect(find.textContaining('not medical advice'), findsOneWidget);
     expect(
       find.textContaining('Plan changes apply to future sessions.'),
       findsOneWidget,
     );
+    await tester.scrollUntilVisible(
+      find.textContaining('not medical advice'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.textContaining('not medical advice'), findsOneWidget);
 
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, 1000));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('16:8 fasting'));
     await tester.pumpAndSettle();
     expect(find.byType(PlanSelectionScreen), findsOneWidget);
@@ -87,6 +115,50 @@ void main() {
 
     expect(find.text('18:6 fasting'), findsOneWidget);
     expect((await repository.load()).selectedPlan.id, '18-6');
+  });
+
+  testWidgets('glass effect setting switches navigation and persists', (
+    WidgetTester tester,
+  ) async {
+    final repository = FastingRepository(store: MemoryStringStore());
+    await tester.pumpWidget(FastiseApp(repository: repository));
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.descendant(
+        of: find.byType(GlassTabBar),
+        matching: find.text('Profile'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('glass-effect-setting')),
+    );
+    await tester.tap(find.byKey(const ValueKey('glass-effect-setting')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(GlassTabBar), findsNothing);
+    expect(find.byType(NavigationBar), findsOneWidget);
+    expect((await repository.load()).glassEffectEnabled, isFalse);
+
+    await tester.pumpWidget(FastiseApp(repository: repository));
+    await tester.pumpAndSettle();
+    expect(find.byType(GlassTabBar), findsNothing);
+
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.text('Profile'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('glass-effect-setting')),
+    );
+    await tester.tap(find.byKey(const ValueKey('glass-effect-setting')));
+    await tester.pumpAndSettle();
+    expect(find.byType(GlassTabBar), findsOneWidget);
+    expect((await repository.load()).glassEffectEnabled, isTrue);
   });
 
   testWidgets(
@@ -172,7 +244,14 @@ void main() {
     );
     expect(find.text('No recent sessions'), findsNothing);
     expect(find.text('16:8'), findsOneWidget);
-    await tester.tap(find.text('History').last);
+    await tester.tapAt(
+      tester.getCenter(
+        find.descendant(
+          of: find.byType(GlassTabBar),
+          matching: find.byIcon(PhosphorIconsRegular.clockCounterClockwise),
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
     expect(find.text('1 completed session'), findsOneWidget);
     expect(find.text('16:8'), findsOneWidget);
@@ -195,6 +274,8 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('18:6').last);
       await tester.tap(find.text('Save plan'));
+      await tester.pumpAndSettle();
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, 1000));
       await tester.pumpAndSettle();
       await tester.ensureVisible(find.text('Start fasting'));
       await tester.pumpAndSettle();

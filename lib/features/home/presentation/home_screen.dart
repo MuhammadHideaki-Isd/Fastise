@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../fasting/domain/fasting_plan.dart';
@@ -148,7 +149,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           alpha: 0.12,
                         ),
                         child: const Icon(
-                          Icons.person_outline,
+                          PhosphorIconsRegular.userCircle,
                           color: AppColors.primary,
                         ),
                       ),
@@ -277,7 +278,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     leading: const CircleAvatar(
                       backgroundColor: Color(0xFFE8F0EB),
-                      child: Icon(Icons.schedule, color: AppColors.primary),
+                      child: Icon(
+                        PhosphorIconsRegular.clock,
+                        color: AppColors.primary,
+                      ),
                     ),
                     title: Text(
                       '${activeSession?.planNameSnapshot ?? widget.selectedPlan.label} '
@@ -293,7 +297,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           : '${activeSession.planNameSnapshot.split(':').first} hours fasting · '
                                 '${activeSession.planNameSnapshot.split(':').last} hours eating',
                     ),
-                    trailing: const Icon(Icons.chevron_right),
+                    trailing: const Icon(PhosphorIconsRegular.caretRight),
                     onTap: activeSession == null ? widget.onSelectPlan : null,
                   ),
                 ),
@@ -355,7 +359,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   shape: BoxShape.circle,
                                 ),
                                 child: const Icon(
-                                  Icons.history,
+                                  PhosphorIconsRegular.clockCounterClockwise,
                                   color: AppColors.primary,
                                 ),
                               ),
@@ -435,7 +439,7 @@ class _RecentSessionTile extends StatelessWidget {
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       leading: const CircleAvatar(
         backgroundColor: Color(0xFFE8F0EB),
-        child: Icon(Icons.check, color: AppColors.primary),
+        child: Icon(PhosphorIconsRegular.check, color: AppColors.primary),
       ),
       title: Text(session.planNameSnapshot),
       subtitle: Text('${endAt.day}/${endAt.month}/${endAt.year} · $time'),
