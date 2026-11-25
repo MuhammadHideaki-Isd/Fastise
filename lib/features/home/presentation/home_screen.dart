@@ -6,6 +6,7 @@ import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/stat_card.dart';
 import '../../fasting/application/fasting_scope.dart';
 import '../../fasting/presentation/plan_selection_screen.dart';
+import '../../fasting/presentation/session_history_tile.dart';
 import 'widgets/fasting_hero_card.dart';
 
 /// Static idle-state dashboard (Task 3). Plan, stats, and the Start CTA are
@@ -24,7 +25,9 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final plan = FastingScope.of(context).selectedPlan;
+    final controller = FastingScope.of(context);
+    final plan = controller.selectedPlan;
+    final recent = controller.sessions.take(3).toList();
     final now = DateTime.now();
     final dateText = formatDate(now, full: true);
 
@@ -120,11 +123,17 @@ class HomeScreen extends StatelessWidget {
                 const SizedBox(height: 24),
                 const _SectionLabel('RECENT ACTIVITY'),
                 const SizedBox(height: 10),
-                const EmptyState(
-                  icon: Icons.history,
-                  title: 'No sessions yet',
-                  message: 'Completed fasts will appear here.',
-                ),
+                if (recent.isEmpty)
+                  const EmptyState(
+                    icon: Icons.history,
+                    title: 'No sessions yet',
+                    message: 'Completed fasts will appear here.',
+                  )
+                else
+                  for (final s in recent) ...[
+                    SessionHistoryTile(session: s, showDate: true),
+                    const SizedBox(height: 8),
+                  ],
               ]),
             ),
           ),
