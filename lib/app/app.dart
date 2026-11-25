@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../features/fasting/domain/fasting_plan.dart';
+import '../features/fasting/presentation/plan_selection_screen.dart';
 import '../features/home/presentation/home_screen.dart';
 import '../features/progress/presentation/progress_screen.dart';
 import '../features/history/presentation/history_screen.dart';
@@ -28,18 +30,35 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   int _selectedIndex = 0;
+  FastingPlan _selectedPlan = const FastingPlan(
+    id: '16-8',
+    name: '16:8',
+    fastingHours: 16,
+    eatingHours: 8,
+  );
 
-  static const _screens = [
-    HomeScreen(),
-    ProgressScreen(),
-    HistoryScreen(),
-    ProfileScreen(),
-  ];
+  void _openPlanSelection() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PlanSelectionScreen(
+          initialPlan: _selectedPlan,
+          onSave: (plan) => setState(() => _selectedPlan = plan),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final screens = [
+      HomeScreen(selectedPlan: _selectedPlan, onSelectPlan: _openPlanSelection),
+      const ProgressScreen(),
+      const HistoryScreen(),
+      const ProfileScreen(),
+    ];
+
     return Scaffold(
-      body: IndexedStack(index: _selectedIndex, children: _screens),
+      body: IndexedStack(index: _selectedIndex, children: screens),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (index) {
