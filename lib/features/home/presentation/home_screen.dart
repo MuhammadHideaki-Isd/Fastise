@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../shared/utils/formatters.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/stat_card.dart';
 import '../../fasting/application/fasting_scope.dart';
 import '../../fasting/presentation/plan_selection_screen.dart';
-import 'widgets/fasting_timer.dart';
+import 'widgets/fasting_hero_card.dart';
 
 /// Static idle-state dashboard (Task 3). Plan, stats, and the Start CTA are
 /// wired to real state in later tasks (4, 5, 6, 7).
@@ -13,30 +14,6 @@ class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key, required this.onProfileTap});
 
   final VoidCallback onProfileTap;
-
-  static const _weekdays = [
-    'Monday',
-    'Tuesday',
-    'Wednesday',
-    'Thursday',
-    'Friday',
-    'Saturday',
-    'Sunday',
-  ];
-  static const _months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
 
   static String _greeting(int hour) {
     if (hour < 12) return 'Good morning';
@@ -49,8 +26,7 @@ class HomeScreen extends StatelessWidget {
     final theme = Theme.of(context);
     final plan = FastingScope.of(context).selectedPlan;
     final now = DateTime.now();
-    final dateText =
-        '${_weekdays[now.weekday - 1]}, ${now.day} ${_months[now.month - 1]}';
+    final dateText = formatDate(now, full: true);
 
     return SafeArea(
       child: CustomScrollView(
@@ -94,32 +70,7 @@ class HomeScreen extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 24),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      children: [
-                        // Static idle values; real timer arrives in Task 6.
-                        FastingTimer(
-                          statusLabel: 'Not fasting',
-                          timeText: '00:00:00',
-                          progress: 0,
-                          caption: 'Target ${plan.fastingHours} h',
-                        ),
-                        const SizedBox(height: 24),
-                        const SizedBox(
-                          width: double.infinity,
-                          height: 52,
-                          // null = disabled: session start is Task 5/6.
-                          child: FilledButton(
-                            onPressed: null,
-                            child: Text('Start Fasting'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                const FastingHeroCard(),
                 const SizedBox(height: 24),
                 const _SectionLabel('YOUR PLAN'),
                 const SizedBox(height: 10),

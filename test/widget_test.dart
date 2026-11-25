@@ -22,10 +22,6 @@ void main() {
     expect(find.text('No sessions yet'), findsOneWidget);
     expect(find.byType(NavigationBar), findsOneWidget);
 
-    // Start is disabled until session logic exists (Task 5/6).
-    final cta = tester.widget<FilledButton>(find.byType(FilledButton));
-    expect(cta.onPressed, isNull);
-
     await tester.tap(find.text('History'));
     await tester.pump();
     expect(find.text('History'), findsNWidgets(2));
