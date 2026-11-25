@@ -13,6 +13,7 @@ class HomeScreen extends StatefulWidget {
     super.key,
     required this.selectedPlan,
     required this.onSelectPlan,
+    required this.onOpenProfile,
     this.activeSession,
     required this.onStart,
     required this.onEnd,
@@ -23,6 +24,7 @@ class HomeScreen extends StatefulWidget {
 
   final FastingPlan selectedPlan;
   final VoidCallback onSelectPlan;
+  final VoidCallback onOpenProfile;
   final FastingSession? activeSession;
   final VoidCallback onStart;
   final VoidCallback onEnd;
@@ -137,14 +139,18 @@ class _HomeScreenState extends State<HomeScreen> {
                         ],
                       ),
                     ),
-                    CircleAvatar(
-                      radius: 22,
-                      backgroundColor: AppColors.primary.withValues(
-                        alpha: 0.12,
-                      ),
-                      child: const Icon(
-                        Icons.person_outline,
-                        color: AppColors.primary,
+                    IconButton(
+                      tooltip: 'Profile',
+                      onPressed: widget.onOpenProfile,
+                      icon: CircleAvatar(
+                        radius: 22,
+                        backgroundColor: AppColors.primary.withValues(
+                          alpha: 0.12,
+                        ),
+                        child: const Icon(
+                          Icons.person_outline,
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
                   ],

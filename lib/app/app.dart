@@ -269,6 +269,7 @@ class _AppShellState extends State<AppShell> {
       HomeScreen(
         selectedPlan: _selectedPlan,
         onSelectPlan: _openPlanSelection,
+        onOpenProfile: () => setState(() => _selectedIndex = 3),
         activeSession: _sessionState.activeSession,
         onStart: _startFasting,
         onEnd: _endFasting,

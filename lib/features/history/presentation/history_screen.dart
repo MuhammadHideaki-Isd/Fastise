@@ -128,36 +128,37 @@ class _HistorySessionCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        session.planNameSnapshot,
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          color: AppColors.primaryDark,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _formatDate(endAt),
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final durationLabel = FastingTimerSnapshot.formatDuration(
+                  duration,
+                );
+                final planDetails = Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      FastingTimerSnapshot.formatDuration(duration),
+                      session.planNameSnapshot,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        color: AppColors.primaryDark,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _formatDate(endAt),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                );
+                final durationDetails = Column(
+                  crossAxisAlignment: constraints.maxWidth < 360
+                      ? CrossAxisAlignment.start
+                      : CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      durationLabel,
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
@@ -169,8 +170,28 @@ class _HistorySessionCard extends StatelessWidget {
                       ),
                     ),
                   ],
-                ),
-              ],
+                );
+
+                if (constraints.maxWidth < 360) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      planDetails,
+                      const SizedBox(height: 10),
+                      durationDetails,
+                    ],
+                  );
+                }
+
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: planDetails),
+                    const SizedBox(width: 12),
+                    durationDetails,
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 16),
             Wrap(
@@ -230,11 +251,11 @@ class _SessionTime extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
+    return Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 6,
       children: [
         Icon(icon, size: 18, color: AppColors.textSecondary),
-        const SizedBox(width: 6),
         Text(text, style: style?.copyWith(color: AppColors.textSecondary)),
       ],
     );
