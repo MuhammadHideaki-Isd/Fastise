@@ -18,7 +18,7 @@ class PlanSelectionScreen extends StatefulWidget {
   });
 
   final FastingPlan initialPlan;
-  final ValueChanged<FastingPlan> onSave;
+  final Future<bool> Function(FastingPlan) onSave;
 
   @override
   State<PlanSelectionScreen> createState() => _PlanSelectionScreenState();
@@ -26,6 +26,7 @@ class PlanSelectionScreen extends StatefulWidget {
 
 class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
   late FastingPlan _selectedPlan;
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -68,7 +69,9 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                       child: _PlanCard(
                         plan: plan,
                         selected: plan.id == _selectedPlan.id,
-                        onTap: () => setState(() => _selectedPlan = plan),
+                        onTap: _isSaving
+                            ? null
+                            : () => setState(() => _selectedPlan = plan),
                       ),
                     ),
                   ),
@@ -109,11 +112,29 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                 width: double.infinity,
                 height: 52,
                 child: FilledButton(
-                  onPressed: () {
-                    widget.onSave(_selectedPlan);
-                    Navigator.of(context).pop();
-                  },
-                  child: const Text('Save plan'),
+                  onPressed: _isSaving
+                      ? null
+                      : () async {
+                          final navigator = Navigator.of(context);
+                          setState(() => _isSaving = true);
+                          try {
+                            final saved = await widget.onSave(_selectedPlan);
+                            if (saved && mounted) {
+                              navigator.pop();
+                            }
+                          } finally {
+                            if (mounted) {
+                              setState(() => _isSaving = false);
+                            }
+                          }
+                        },
+                  child: _isSaving
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Save plan'),
                 ),
               ),
             ),
@@ -133,7 +154,7 @@ class _PlanCard extends StatelessWidget {
 
   final FastingPlan plan;
   final bool selected;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {

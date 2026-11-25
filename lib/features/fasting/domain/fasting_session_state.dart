@@ -23,6 +23,27 @@ class FastingSessionState extends ChangeNotifier {
   List<FastingSession> get completedSessions =>
       List.unmodifiable(_completedSessions);
 
+  void restore({
+    required FastingSession? activeSession,
+    required List<FastingSession> completedSessions,
+  }) {
+    if (activeSession != null &&
+        activeSession.status != FastingSessionStatus.active) {
+      throw ArgumentError.value(activeSession, 'activeSession');
+    }
+    if (completedSessions.any(
+      (session) => session.status != FastingSessionStatus.completed,
+    )) {
+      throw ArgumentError.value(completedSessions, 'completedSessions');
+    }
+
+    _activeSession = activeSession;
+    _completedSessions
+      ..clear()
+      ..addAll(completedSessions);
+    notifyListeners();
+  }
+
   bool start(FastingPlan plan) {
     if (_activeSession != null) {
       return false;

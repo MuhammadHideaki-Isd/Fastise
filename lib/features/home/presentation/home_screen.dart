@@ -15,6 +15,7 @@ class HomeScreen extends StatefulWidget {
     this.activeSession,
     required this.onStart,
     required this.onEnd,
+    this.isBusy = false,
     this.clock,
   });
 
@@ -23,6 +24,7 @@ class HomeScreen extends StatefulWidget {
   final FastingSession? activeSession;
   final VoidCallback onStart;
   final VoidCallback onEnd;
+  final bool isBusy;
   final DateTime Function()? clock;
 
   @override
@@ -218,14 +220,24 @@ class _HomeScreenState extends State<HomeScreen> {
                         SizedBox(
                           width: double.infinity,
                           child: FilledButton(
-                            onPressed: activeSession == null
+                            onPressed: widget.isBusy
+                                ? null
+                                : activeSession == null
                                 ? widget.onStart
                                 : widget.onEnd,
-                            child: Text(
-                              activeSession == null
-                                  ? 'Start fasting'
-                                  : 'End fasting',
-                            ),
+                            child: widget.isBusy
+                                ? const SizedBox(
+                                    width: 22,
+                                    height: 22,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : Text(
+                                    activeSession == null
+                                        ? 'Start fasting'
+                                        : 'End fasting',
+                                  ),
                           ),
                         ),
                       ],
