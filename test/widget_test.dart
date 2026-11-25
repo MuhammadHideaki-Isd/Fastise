@@ -58,6 +58,74 @@ void main() {
     expect((await repository.load()).selectedPlan.id, '18-6');
   });
 
+  testWidgets('profile shows app info and saves a plan for future sessions', (
+    WidgetTester tester,
+  ) async {
+    final repository = FastingRepository(store: MemoryStringStore());
+    await tester.pumpWidget(FastiseApp(repository: repository));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Profile'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('16:8 fasting'), findsOneWidget);
+    expect(find.text('Fastise'), findsOneWidget);
+    expect(find.textContaining('stored on this device'), findsOneWidget);
+    expect(find.textContaining('not medical advice'), findsOneWidget);
+    expect(
+      find.textContaining('Plan changes apply to future sessions.'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text('16:8 fasting'));
+    await tester.pumpAndSettle();
+    expect(find.byType(PlanSelectionScreen), findsOneWidget);
+
+    await tester.tap(find.text('18:6').last);
+    await tester.tap(find.text('Save plan'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('18:6 fasting'), findsOneWidget);
+    expect((await repository.load()).selectedPlan.id, '18-6');
+  });
+
+  testWidgets(
+    'changing plan in profile preserves active session plan snapshot',
+    (WidgetTester tester) async {
+      final repository = FastingRepository(store: MemoryStringStore());
+      await tester.pumpWidget(FastiseApp(repository: repository));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Start fasting'));
+      await tester.pumpAndSettle();
+      final activeSessionBeforeEdit = (await repository.load()).activeSession!;
+
+      await tester.tap(find.text('Profile'));
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining('active session keeps its original plan'),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('16:8 fasting'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('18:6').last);
+      await tester.tap(find.text('Save plan'));
+      await tester.pumpAndSettle();
+
+      final data = await repository.load();
+      expect(data.selectedPlan.id, '18-6');
+      expect(data.activeSession!.planId, activeSessionBeforeEdit.planId);
+      expect(
+        data.activeSession!.planNameSnapshot,
+        activeSessionBeforeEdit.planNameSnapshot,
+      );
+      expect(
+        data.activeSession!.plannedDurationMinutes,
+        activeSessionBeforeEdit.plannedDurationMinutes,
+      );
+    },
+  );
+
   testWidgets('confirms session end, shows summary, and returns home', (
     WidgetTester tester,
   ) async {

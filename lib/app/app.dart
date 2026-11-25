@@ -277,7 +277,11 @@ class _AppShellState extends State<AppShell> {
       ),
       ProgressScreen(sessions: _sessionState.completedSessions),
       HistoryScreen(sessions: _sessionState.completedSessions),
-      const ProfileScreen(),
+      ProfileScreen(
+        selectedPlan: _selectedPlan,
+        hasActiveSession: _sessionState.activeSession != null,
+        onEditPlan: _openPlanSelection,
+      ),
     ];
 
     return Scaffold(
