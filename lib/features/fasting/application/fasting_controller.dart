@@ -1,20 +1,30 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
+import '../data/fasting_repository.dart';
 import '../domain/fasting_plan.dart';
 import '../domain/fasting_session.dart';
 
 /// App-wide fasting state: selected plan, the single active session, and
-/// completed sessions. Persistence is added in Task 7.
+/// completed sessions. With a [repository], state is restored on creation
+/// and saved after every change.
 class FastingController extends ChangeNotifier {
   FastingController({
     FastingPlan plan = FastingPlan.defaultPlan,
     DateTime Function()? clock,
-  }) : _selectedPlan = plan,
-       now = clock ?? DateTime.now;
+    FastingRepository? repository,
+  }) : _repo = repository,
+       _selectedPlan = repository?.loadPlan() ?? plan,
+       _active = repository?.loadActive(),
+       now = clock ?? DateTime.now {
+    if (repository != null) _completed.addAll(repository.loadCompleted());
+  }
 
   /// Injectable clock so timer logic can be tested.
   final DateTime Function() now;
 
+  final FastingRepository? _repo;
   FastingPlan _selectedPlan;
   FastingSession? _active;
   final List<FastingSession> _completed = [];
@@ -30,6 +40,7 @@ class FastingController extends ChangeNotifier {
   void selectPlan(FastingPlan plan) {
     if (plan.id == _selectedPlan.id) return;
     _selectedPlan = plan;
+    unawaited(_repo?.savePlan(plan));
     notifyListeners();
   }
 
@@ -46,6 +57,7 @@ class FastingController extends ChangeNotifier {
       startAt: start,
       plannedDurationMinutes: plan.fastingHours * 60,
     );
+    unawaited(_repo?.saveActive(_active));
     notifyListeners();
     return _active;
   }
@@ -57,6 +69,9 @@ class FastingController extends ChangeNotifier {
     final done = active.complete(now());
     _completed.insert(0, done);
     _active = null;
+    // History first, then clear active: a crash in between never loses it.
+    unawaited(_repo?.saveCompleted(_completed));
+    unawaited(_repo?.saveActive(null));
     notifyListeners();
     return done;
   }
@@ -65,6 +80,7 @@ class FastingController extends ChangeNotifier {
   void cancelFasting() {
     if (_active == null) return;
     _active = null;
+    unawaited(_repo?.saveActive(null));
     notifyListeners();
   }
 }
