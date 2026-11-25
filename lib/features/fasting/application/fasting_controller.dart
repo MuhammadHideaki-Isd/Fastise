@@ -76,6 +76,15 @@ class FastingController extends ChangeNotifier {
     return done;
   }
 
+  /// Deletes the plan choice, the active session, and all history.
+  void resetData() {
+    _selectedPlan = FastingPlan.defaultPlan;
+    _active = null;
+    _completed.clear();
+    unawaited(_repo?.clearAll());
+    notifyListeners();
+  }
+
   /// Discards the active session without saving it to history.
   void cancelFasting() {
     if (_active == null) return;
