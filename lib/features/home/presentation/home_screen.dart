@@ -1,22 +1,76 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../fasting/domain/fasting_plan.dart';
+import '../../fasting/domain/fasting_session.dart';
+import '../../fasting/domain/fasting_timer.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({
     super.key,
     required this.selectedPlan,
     required this.onSelectPlan,
+    this.activeSession,
+    required this.onStart,
+    required this.onEnd,
+    this.clock,
   });
 
   final FastingPlan selectedPlan;
   final VoidCallback onSelectPlan;
+  final FastingSession? activeSession;
+  final VoidCallback onStart;
+  final VoidCallback onEnd;
+  final DateTime Function()? clock;
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _syncTimer();
+  }
+
+  @override
+  void didUpdateWidget(covariant HomeScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.activeSession?.id != widget.activeSession?.id) {
+      _syncTimer();
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _syncTimer() {
+    _timer?.cancel();
+    if (widget.activeSession != null) {
+      _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (mounted) {
+          setState(() {});
+        }
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final now = DateTime.now();
+    final now = widget.clock?.call() ?? DateTime.now();
+    final activeSession = widget.activeSession;
+    final timerSnapshot = activeSession == null
+        ? null
+        : FastingTimer.calculate(activeSession, now);
     const weekdays = [
       'Monday',
       'Tuesday',
@@ -100,7 +154,7 @@ class HomeScreen extends StatelessWidget {
                     child: Column(
                       children: [
                         Text(
-                          'Not fasting',
+                          activeSession == null ? 'Not fasting' : 'Fasting',
                           style: theme.textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w700,
                           ),
@@ -116,7 +170,7 @@ class HomeScreen extends StatelessWidget {
                                 width: 190,
                                 height: 190,
                                 child: CircularProgressIndicator(
-                                  value: 0,
+                                  value: timerSnapshot?.progress ?? 0,
                                   strokeWidth: 10,
                                   backgroundColor: AppColors.border,
                                   valueColor:
@@ -129,7 +183,7 @@ class HomeScreen extends StatelessWidget {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Text(
-                                    '00:00:00',
+                                    timerSnapshot?.elapsedLabel ?? '00:00:00',
                                     style: theme.textTheme.headlineSmall
                                         ?.copyWith(
                                           color: AppColors.primaryDark,
@@ -139,7 +193,7 @@ class HomeScreen extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 6),
                                   Text(
-                                    '0% complete',
+                                    '${((timerSnapshot?.progress ?? 0) * 100).round()}% complete',
                                     style: theme.textTheme.bodySmall?.copyWith(
                                       color: AppColors.textSecondary,
                                     ),
@@ -151,7 +205,11 @@ class HomeScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Ready when you are',
+                          timerSnapshot?.targetReached == true
+                              ? 'Target reached'
+                              : activeSession == null
+                              ? 'Ready when you are'
+                              : 'Keep going',
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: AppColors.textSecondary,
                           ),
@@ -160,8 +218,14 @@ class HomeScreen extends StatelessWidget {
                         SizedBox(
                           width: double.infinity,
                           child: FilledButton(
-                            onPressed: () {},
-                            child: const Text('Start fasting'),
+                            onPressed: activeSession == null
+                                ? widget.onStart
+                                : widget.onEnd,
+                            child: Text(
+                              activeSession == null
+                                  ? 'Start fasting'
+                                  : 'End fasting',
+                            ),
                           ),
                         ),
                       ],
@@ -189,17 +253,21 @@ class HomeScreen extends StatelessWidget {
                       child: Icon(Icons.schedule, color: AppColors.primary),
                     ),
                     title: Text(
-                      '${selectedPlan.label} Intermittent fasting',
+                      '${activeSession?.planNameSnapshot ?? widget.selectedPlan.label} '
+                      'Intermittent fasting',
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                     subtitle: Text(
-                      '${selectedPlan.fastingHours} hours fasting · '
-                      '${selectedPlan.eatingHours} hours eating',
+                      activeSession == null
+                          ? '${widget.selectedPlan.fastingHours} hours fasting · '
+                                '${widget.selectedPlan.eatingHours} hours eating'
+                          : '${activeSession.planNameSnapshot.split(':').first} hours fasting · '
+                                '${activeSession.planNameSnapshot.split(':').last} hours eating',
                     ),
                     trailing: const Icon(Icons.chevron_right),
-                    onTap: onSelectPlan,
+                    onTap: activeSession == null ? widget.onSelectPlan : null,
                   ),
                 ),
                 const SizedBox(height: 24),

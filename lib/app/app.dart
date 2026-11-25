@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../features/fasting/domain/fasting_plan.dart';
+import '../features/fasting/domain/fasting_session_state.dart';
 import '../features/fasting/presentation/plan_selection_screen.dart';
 import '../features/home/presentation/home_screen.dart';
 import '../features/progress/presentation/progress_screen.dart';
@@ -30,12 +31,40 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   int _selectedIndex = 0;
+  final FastingSessionState _sessionState = FastingSessionState();
   FastingPlan _selectedPlan = const FastingPlan(
     id: '16-8',
     name: '16:8',
     fastingHours: 16,
     eatingHours: 8,
   );
+
+  @override
+  void initState() {
+    super.initState();
+    _sessionState.addListener(_handleSessionChanged);
+  }
+
+  @override
+  void dispose() {
+    _sessionState.removeListener(_handleSessionChanged);
+    _sessionState.dispose();
+    super.dispose();
+  }
+
+  void _handleSessionChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  void _startFasting() {
+    _sessionState.start(_selectedPlan);
+  }
+
+  void _endFasting() {
+    _sessionState.complete();
+  }
 
   void _openPlanSelection() {
     Navigator.of(context).push(
@@ -51,7 +80,13 @@ class _AppShellState extends State<AppShell> {
   @override
   Widget build(BuildContext context) {
     final screens = [
-      HomeScreen(selectedPlan: _selectedPlan, onSelectPlan: _openPlanSelection),
+      HomeScreen(
+        selectedPlan: _selectedPlan,
+        onSelectPlan: _openPlanSelection,
+        activeSession: _sessionState.activeSession,
+        onStart: _startFasting,
+        onEnd: _endFasting,
+      ),
       const ProgressScreen(),
       const HistoryScreen(),
       const ProfileScreen(),

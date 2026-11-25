@@ -47,4 +47,22 @@ void main() {
 
     expect(find.text('18:6 Intermittent fasting'), findsOneWidget);
   });
+
+  testWidgets('starts and ends one fasting session', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const FastiseApp());
+
+    await tester.tap(find.text('Start fasting'));
+    await tester.pump();
+
+    expect(find.text('Fasting'), findsOneWidget);
+    expect(find.text('End fasting'), findsOneWidget);
+
+    await tester.tap(find.text('End fasting'));
+    await tester.pump();
+
+    expect(find.text('Not fasting'), findsOneWidget);
+    expect(find.text('Start fasting'), findsOneWidget);
+  });
 }
