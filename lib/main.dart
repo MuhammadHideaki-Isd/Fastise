@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'app/app.dart';
+import 'features/fasting/application/fasting_controller.dart';
 
 void main() {
-  runApp(const FastiseApp());
+  runApp(FastiseApp(controller: FastingController()));
 }

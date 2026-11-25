@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../features/fasting/application/fasting_controller.dart';
+import '../features/fasting/application/fasting_scope.dart';
 import '../features/home/presentation/home_screen.dart';
 import '../features/progress/presentation/progress_screen.dart';
 import '../features/history/presentation/history_screen.dart';
@@ -7,14 +9,19 @@ import '../features/profile/presentation/profile_screen.dart';
 import 'theme/app_theme.dart';
 
 class FastiseApp extends StatelessWidget {
-  const FastiseApp({super.key});
+  const FastiseApp({super.key, required this.controller});
+
+  final FastingController controller;
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Fasting Tracker',
-      theme: AppTheme.light(),
-      home: const AppShell(),
+    return FastingScope(
+      controller: controller,
+      child: MaterialApp(
+        title: 'Fasting Tracker',
+        theme: AppTheme.light(),
+        home: const AppShell(),
+      ),
     );
   }
 }

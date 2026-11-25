@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/stat_card.dart';
+import '../../fasting/application/fasting_scope.dart';
+import '../../fasting/presentation/plan_selection_screen.dart';
 import 'widgets/fasting_timer.dart';
 
 /// Static idle-state dashboard (Task 3). Plan, stats, and the Start CTA are
@@ -45,6 +47,7 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final plan = FastingScope.of(context).selectedPlan;
     final now = DateTime.now();
     final dateText =
         '${_weekdays[now.weekday - 1]}, ${now.day} ${_months[now.month - 1]}';
@@ -97,11 +100,11 @@ class HomeScreen extends StatelessWidget {
                     child: Column(
                       children: [
                         // Static idle values; real timer arrives in Task 6.
-                        const FastingTimer(
+                        FastingTimer(
                           statusLabel: 'Not fasting',
                           timeText: '00:00:00',
                           progress: 0,
-                          caption: 'Target 16 h',
+                          caption: 'Target ${plan.fastingHours} h',
                         ),
                         const SizedBox(height: 24),
                         const SizedBox(
@@ -120,9 +123,14 @@ class HomeScreen extends StatelessWidget {
                 const SizedBox(height: 24),
                 const _SectionLabel('YOUR PLAN'),
                 const SizedBox(height: 10),
-                // Placeholder default plan until selection exists (Task 4).
                 Card(
+                  clipBehavior: Clip.antiAlias,
                   child: ListTile(
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const PlanSelectionScreen(),
+                      ),
+                    ),
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 20,
                       vertical: 8,
@@ -132,12 +140,16 @@ class HomeScreen extends StatelessWidget {
                       child: Icon(Icons.schedule, color: AppColors.primary),
                     ),
                     title: Text(
-                      '16:8',
+                      plan.name,
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    subtitle: const Text('16 h fasting · 8 h eating window'),
+                    subtitle: Text(
+                      '${plan.fastingHours} h fasting · '
+                      '${plan.eatingHours} h eating window',
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
                   ),
                 ),
                 const SizedBox(height: 24),
