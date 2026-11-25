@@ -275,7 +275,7 @@ class _AppShellState extends State<AppShell> {
         isBusy: _isBusy,
       ),
       const ProgressScreen(),
-      const HistoryScreen(),
+      HistoryScreen(sessions: _sessionState.completedSessions),
       const ProfileScreen(),
     ];
 

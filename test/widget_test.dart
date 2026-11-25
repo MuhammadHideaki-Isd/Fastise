@@ -97,6 +97,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Not fasting'), findsOneWidget);
     expect(find.text('Start fasting'), findsOneWidget);
+    await tester.tap(find.text('History').last);
+    await tester.pumpAndSettle();
+    expect(find.text('1 completed session'), findsOneWidget);
+    expect(find.text('16:8'), findsOneWidget);
   });
 
   testWidgets(
