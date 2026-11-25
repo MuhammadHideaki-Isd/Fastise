@@ -43,9 +43,7 @@ class SessionDetails extends StatelessWidget {
   Widget build(BuildContext context) {
     final start = session.startAt;
     final end = session.endAt ?? session.startAt;
-    final actual = Duration(
-      seconds: session.actualDurationSeconds ?? end.difference(start).inSeconds,
-    );
+    final actual = session.actualDuration;
     return Column(
       children: [
         _Row('Plan', session.planNameSnapshot),

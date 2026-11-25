@@ -22,9 +22,7 @@ class SessionHistoryTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final start = session.startAt;
     final end = session.endAt ?? start;
-    final actual = Duration(
-      seconds: session.actualDurationSeconds ?? end.difference(start).inSeconds,
-    );
+    final actual = session.actualDuration;
     final range = '${formatTime(start)} – ${formatTime(end)}';
     final subtitle = [
       if (showDate) formatDate(start),

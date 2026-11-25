@@ -19,7 +19,6 @@ abstract final class AppTheme {
       colorScheme: colorScheme,
       scaffoldBackgroundColor: AppColors.background,
       useMaterial3: true,
-      fontFamily: 'sans-serif',
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.background,
         foregroundColor: AppColors.textPrimary,

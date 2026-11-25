@@ -24,7 +24,8 @@ void main() {
 
     await tester.tap(find.text('History'));
     await tester.pump();
-    expect(find.text('History'), findsNWidgets(2));
+    final bar = tester.widget<NavigationBar>(find.byType(NavigationBar));
+    expect(bar.selectedIndex, 2);
   });
 
   testWidgets('profile shortcut opens the Profile tab', (tester) async {
