@@ -6,6 +6,7 @@ import '../../../app/theme/app_colors.dart';
 import '../../fasting/domain/fasting_plan.dart';
 import '../../fasting/domain/fasting_session.dart';
 import '../../fasting/domain/fasting_timer.dart';
+import '../../progress/domain/progress_summary.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
@@ -15,6 +16,7 @@ class HomeScreen extends StatefulWidget {
     this.activeSession,
     required this.onStart,
     required this.onEnd,
+    required this.completedSessions,
     this.isBusy = false,
     this.clock,
   });
@@ -24,6 +26,7 @@ class HomeScreen extends StatefulWidget {
   final FastingSession? activeSession;
   final VoidCallback onStart;
   final VoidCallback onEnd;
+  final List<FastingSession> completedSessions;
   final bool isBusy;
   final DateTime Function()? clock;
 
@@ -73,6 +76,12 @@ class _HomeScreenState extends State<HomeScreen> {
     final timerSnapshot = activeSession == null
         ? null
         : FastingTimer.calculate(activeSession, now);
+    final progressSummary = ProgressSummary.calculate(
+      sessions: widget.completedSessions,
+      now: now,
+    );
+    final recentSessions = widget.completedSessions.toList()
+      ..sort((first, second) => second.endAt!.compareTo(first.endAt!));
     const weekdays = [
       'Monday',
       'Tuesday',
@@ -293,13 +302,23 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 10),
                 Row(
-                  children: const [
+                  children: [
                     Expanded(
-                      child: _StatCard(value: '0', label: 'Sessions'),
+                      child: _StatCard(
+                        value: progressSummary.weeklySessionCount.toString(),
+                        label: 'Sessions',
+                      ),
                     ),
                     SizedBox(width: 12),
                     Expanded(
-                      child: _StatCard(value: '—', label: 'Avg. duration'),
+                      child: _StatCard(
+                        value: progressSummary.weeklyAverageDuration == null
+                            ? '—'
+                            : _compactDuration(
+                                progressSummary.weeklyAverageDuration!,
+                              ),
+                        label: 'Avg. duration',
+                      ),
                     ),
                   ],
                 ),
@@ -314,54 +333,113 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 10),
                 Card(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 24,
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 44,
-                          height: 44,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFE8F0EB),
-                            shape: BoxShape.circle,
+                  child: recentSessions.isEmpty
+                      ? Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 24,
                           ),
-                          child: const Icon(
-                            Icons.history,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          child: Row(
                             children: [
-                              Text(
-                                'No recent sessions',
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w700,
+                              Container(
+                                width: 44,
+                                height: 44,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFE8F0EB),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.history,
+                                  color: AppColors.primary,
                                 ),
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Completed sessions will appear here.',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: AppColors.textSecondary,
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'No recent sessions',
+                                      style: theme.textTheme.titleMedium
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Completed sessions will appear here.',
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            color: AppColors.textSecondary,
+                                          ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
                           ),
+                        )
+                      : Column(
+                          children: [
+                            for (
+                              var index = 0;
+                              index < recentSessions.length.clamp(0, 3);
+                              index++
+                            ) ...[
+                              if (index > 0) const Divider(height: 1),
+                              _RecentSessionTile(
+                                session: recentSessions[index],
+                              ),
+                            ],
+                          ],
                         ),
-                      ],
-                    ),
-                  ),
                 ),
               ]),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  String _compactDuration(Duration duration) {
+    final totalMinutes = duration.inMinutes;
+    final hours = totalMinutes ~/ 60;
+    final minutes = totalMinutes % 60;
+    if (totalMinutes == 0 && duration.inSeconds > 0) {
+      return '${duration.inSeconds}s';
+    }
+    if (hours == 0) return '${minutes}m';
+    if (minutes == 0) return '${hours}h';
+    return '${hours}h ${minutes}m';
+  }
+}
+
+class _RecentSessionTile extends StatelessWidget {
+  const _RecentSessionTile({required this.session});
+
+  final FastingSession session;
+
+  @override
+  Widget build(BuildContext context) {
+    final endAt = session.endAt!;
+    final time = TimeOfDay.fromDateTime(endAt).format(context);
+
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      leading: const CircleAvatar(
+        backgroundColor: Color(0xFFE8F0EB),
+        child: Icon(Icons.check, color: AppColors.primary),
+      ),
+      title: Text(session.planNameSnapshot),
+      subtitle: Text('${endAt.day}/${endAt.month}/${endAt.year} · $time'),
+      trailing: Text(
+        FastingTimerSnapshot.formatDuration(
+          Duration(seconds: session.actualDurationSeconds!),
+        ),
+        style: Theme.of(
+          context,
+        ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
       ),
     );
   }

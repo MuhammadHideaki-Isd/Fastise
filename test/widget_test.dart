@@ -97,6 +97,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Not fasting'), findsOneWidget);
     expect(find.text('Start fasting'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('RECENT ACTIVITY'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('No recent sessions'), findsNothing);
+    expect(find.text('16:8'), findsOneWidget);
     await tester.tap(find.text('History').last);
     await tester.pumpAndSettle();
     expect(find.text('1 completed session'), findsOneWidget);
