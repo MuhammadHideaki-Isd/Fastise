@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../shared/utils/formatters.dart';
+import '../../../../shared/widgets/confirmation_dialog.dart';
 import '../../../fasting/application/fasting_controller.dart';
 import '../../../fasting/application/fasting_scope.dart';
+import '../../../fasting/presentation/session_summary_screen.dart';
 import 'fasting_timer.dart';
 
 /// Timer ring + primary CTA. While a session is active it repaints every
@@ -39,6 +41,37 @@ class _FastingHeroCardState extends State<FastingHeroCard> {
   void dispose() {
     _ticker?.cancel();
     super.dispose();
+  }
+
+  /// Confirm -> save end time + actual duration -> show the summary.
+  /// Dismissing the dialog leaves the session untouched.
+  Future<void> _end(FastingController controller) async {
+    final confirmed = await showConfirmationDialog(
+      context,
+      title: 'End this fast?',
+      message: 'Your session will be saved with its actual duration.',
+      confirmLabel: 'End session',
+      cancelLabel: 'Keep fasting',
+    );
+    if (!confirmed || !mounted) return;
+    final done = controller.endFasting();
+    if (done == null) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => SessionSummaryScreen(session: done),
+      ),
+    );
+  }
+
+  Future<void> _cancel(FastingController controller) async {
+    final confirmed = await showConfirmationDialog(
+      context,
+      title: 'Discard this session?',
+      message: 'It will not be saved to your history.',
+      confirmLabel: 'Discard',
+      cancelLabel: 'Keep fasting',
+    );
+    if (confirmed && mounted) controller.cancelFasting();
   }
 
   @override
@@ -107,7 +140,22 @@ class _FastingHeroCardState extends State<FastingHeroCard> {
                   onPressed: controller.startFasting,
                   child: const Text('Start Fasting'),
                 ),
+              )
+            else ...[
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: FilledButton(
+                  onPressed: () => _end(controller),
+                  child: const Text('End Fasting'),
+                ),
               ),
+              const SizedBox(height: 4),
+              TextButton(
+                onPressed: () => _cancel(controller),
+                child: const Text('Cancel session'),
+              ),
+            ],
           ],
         ),
       ),
