@@ -70,6 +70,7 @@ class _FastingHeroCardState extends State<FastingHeroCard> {
       message: 'It will not be saved to your history.',
       confirmLabel: 'Discard',
       cancelLabel: 'Keep fasting',
+      isDestructive: true,
     );
     if (confirmed && mounted) controller.cancelFasting();
   }
@@ -80,10 +81,40 @@ class _FastingHeroCardState extends State<FastingHeroCard> {
     final session = controller.activeSession;
     final now = controller.now();
     final theme = Theme.of(context);
+    final isActive = session != null;
+    final reached = session != null && session.reachedTarget(now);
 
-    return Card(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: isActive
+              ? [
+                  AppColors.primarySoft.withValues(alpha: 0.55),
+                  AppColors.surface,
+                ]
+              : const [AppColors.surface, AppColors.surface],
+        ),
+        border: Border.all(
+          color: isActive
+              ? AppColors.primary.withValues(alpha: 0.35)
+              : AppColors.border,
+          width: isActive ? 1.4 : 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primaryDark.withValues(alpha: 0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
         child: Column(
           children: [
             if (session == null)
@@ -98,60 +129,107 @@ class _FastingHeroCardState extends State<FastingHeroCard> {
                 statusLabel: 'Fasting',
                 timeText: formatClock(session.elapsed(now)),
                 progress: session.progress(now),
-                caption: session.reachedTarget(now)
+                caption: reached
                     ? 'Target reached'
                     : '${formatDuration(session.remaining(now))} left',
+                isActive: true,
+                isTargetReached: reached,
               ),
             if (session != null) ...[
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(
-                    child: _TimeInfo(
-                      label: 'Started',
-                      value: formatWhen(session.startAt, now),
-                    ),
+              const SizedBox(height: 14),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: IntrinsicHeight(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _TimeInfo(
+                          icon: Icons.play_circle_outline_rounded,
+                          label: 'Started',
+                          value: formatWhen(session.startAt, now),
+                        ),
+                      ),
+                      const VerticalDivider(width: 20),
+                      Expanded(
+                        child: _TimeInfo(
+                          icon: Icons.flag_outlined,
+                          label: 'Target end',
+                          value: formatWhen(session.targetEndAt, now),
+                        ),
+                      ),
+                    ],
                   ),
-                  Expanded(
-                    child: _TimeInfo(
-                      label: 'Target end',
-                      value: formatWhen(session.targetEndAt, now),
-                    ),
-                  ),
-                ],
+                ),
               ),
-              if (session.reachedTarget(now)) ...[
-                const SizedBox(height: 12),
-                Text(
-                  'You can keep going or end the session whenever you like.',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
+              if (reached) ...[
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.primarySoft.withValues(alpha: 0.7),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    'You can keep going or end the session whenever you like.',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppColors.primaryDark,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
               ],
             ],
-            const SizedBox(height: 24),
+            const SizedBox(height: 18),
             if (session == null)
               SizedBox(
                 width: double.infinity,
-                height: 52,
                 child: FilledButton(
                   onPressed: controller.startFasting,
-                  child: const Text('Start Fasting'),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.play_arrow_rounded, size: 22),
+                      SizedBox(width: 6),
+                      Flexible(child: Text('Start Fasting')),
+                    ],
+                  ),
                 ),
               )
             else ...[
               SizedBox(
                 width: double.infinity,
-                height: 52,
                 child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.primaryDark,
+                  ),
                   onPressed: () => _end(controller),
-                  child: const Text('End Fasting'),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.stop_circle_outlined, size: 20),
+                      SizedBox(width: 8),
+                      Flexible(child: Text('End Fasting')),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 2),
               TextButton(
+                style: TextButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                ),
                 onPressed: () => _cancel(controller),
                 child: const Text('Cancel session'),
               ),
@@ -164,8 +242,13 @@ class _FastingHeroCardState extends State<FastingHeroCard> {
 }
 
 class _TimeInfo extends StatelessWidget {
-  const _TimeInfo({required this.label, required this.value});
+  const _TimeInfo({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
 
+  final IconData icon;
   final String label;
   final String value;
 
@@ -173,15 +256,34 @@ class _TimeInfo extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          label,
-          style: textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: AppColors.textSecondary),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                label,
+                overflow: TextOverflow.ellipsis,
+                style: textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: 4),
         Text(
           value,
-          style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+          textAlign: TextAlign.center,
+          style: textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
         ),
       ],
     );

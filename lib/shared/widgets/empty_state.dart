@@ -18,17 +18,27 @@ class EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     return Card(
+      color: AppColors.surface,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
         child: Column(
           children: [
-            Icon(icon, size: 32, color: AppColors.textSecondary),
-            const SizedBox(height: 12),
+            Container(
+              width: 44,
+              height: 44,
+              decoration: const BoxDecoration(
+                color: AppColors.primarySoft,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 22, color: AppColors.primary),
+            ),
+            const SizedBox(height: 10),
             Text(
               title,
               textAlign: TextAlign.center,
               style: textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
               ),
             ),
             const SizedBox(height: 4),
@@ -37,6 +47,7 @@ class EmptyState extends StatelessWidget {
               textAlign: TextAlign.center,
               style: textTheme.bodyMedium?.copyWith(
                 color: AppColors.textSecondary,
+                height: 1.4,
               ),
             ),
           ],

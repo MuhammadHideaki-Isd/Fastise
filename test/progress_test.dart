@@ -58,6 +58,15 @@ void main() {
       expect(totals[5].total, const Duration(hours: 3)); // Jan 12: 2h + 1h
       expect(totals.last.total, Duration.zero);
     });
+
+    test('dailyTotals preserves sessions across month boundaries', () {
+      final totals = dailyTotals(controller.sessions, clock, 30);
+      expect(totals, hasLength(30));
+      final dec20 = totals.singleWhere((t) => t.day == DateTime(2025, 12, 20));
+      final jan12 = totals.singleWhere((t) => t.day == DateTime(2026, 1, 12));
+      expect(dec20.total, const Duration(hours: 3));
+      expect(jan12.total, const Duration(hours: 3));
+    });
   });
 
   testWidgets('progress with no sessions shows an empty state', (tester) async {

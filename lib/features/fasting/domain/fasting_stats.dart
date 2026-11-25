@@ -51,15 +51,18 @@ List<({DateTime day, Duration total})> dailyTotals(
   final first = startOfLastDays(now, days);
   return [
     for (var i = 0; i < days; i++)
-      (
-        day: DateTime(first.year, first.month, first.day + i),
-        total: statsFor([
-          for (final s in sessions)
-            if (s.startAt.year == first.year &&
-                s.startAt.month == first.month &&
-                s.startAt.day == first.day + i)
-              s,
-        ]).total,
-      ),
+      () {
+        final targetDay = DateTime(first.year, first.month, first.day + i);
+        return (
+          day: targetDay,
+          total: statsFor([
+            for (final s in sessions)
+              if (s.startAt.year == targetDay.year &&
+                  s.startAt.month == targetDay.month &&
+                  s.startAt.day == targetDay.day)
+                s,
+          ]).total,
+        );
+      }(),
   ];
 }

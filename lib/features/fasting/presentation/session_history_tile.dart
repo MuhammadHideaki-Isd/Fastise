@@ -20,33 +20,103 @@ class SessionHistoryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final start = session.startAt;
     final end = session.endAt ?? start;
     final actual = session.actualDuration;
+    final plannedSeconds = session.plannedDuration.inSeconds;
+    final ratio = plannedSeconds <= 0
+        ? 0.0
+        : (actual.inSeconds / plannedSeconds).clamp(0.0, 1.0);
     final range = '${formatTime(start)} – ${formatTime(end)}';
-    final subtitle = [
-      if (showDate) formatDate(start),
-      range,
-      session.planNameSnapshot,
-    ].join(' · ');
+    final subtitle = [if (showDate) formatDate(start), range].join(' · ');
 
     return Card(
       clipBehavior: Clip.antiAlias,
-      child: ListTile(
+      child: InkWell(
         onTap: () => showSessionDetailSheet(context, session),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-        leading: const CircleAvatar(
-          backgroundColor: AppColors.primarySoft,
-          child: Icon(Icons.check, color: AppColors.primary),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: AppColors.primarySoft,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.task_alt_rounded,
+                  size: 20,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text(
+                          formatDuration(actual),
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceSubtle,
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(color: AppColors.border),
+                          ),
+                          child: Text(
+                            session.planNameSnapshot,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: AppColors.primaryDark,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(999),
+                      child: LinearProgressIndicator(
+                        value: ratio,
+                        minHeight: 4,
+                        backgroundColor: AppColors.surfaceSubtle,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.textSecondary,
+              ),
+            ],
+          ),
         ),
-        title: Text(
-          formatDuration(actual),
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-        ),
-        subtitle: Text(subtitle),
-        trailing: const Icon(Icons.chevron_right),
       ),
     );
   }
