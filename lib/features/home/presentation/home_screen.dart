@@ -5,6 +5,7 @@ import '../../../shared/utils/formatters.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/stat_card.dart';
 import '../../fasting/application/fasting_scope.dart';
+import '../../fasting/domain/fasting_stats.dart';
 import '../../fasting/presentation/plan_selection_screen.dart';
 import '../../fasting/presentation/session_history_tile.dart';
 import 'widgets/fasting_hero_card.dart';
@@ -28,6 +29,9 @@ class HomeScreen extends StatelessWidget {
     final controller = FastingScope.of(context);
     final plan = controller.selectedPlan;
     final recent = controller.sessions.take(3).toList();
+    final weekStats = statsFor(
+      sessionsSince(controller.sessions, startOfWeek(controller.now())),
+    );
     final now = DateTime.now();
     final dateText = formatDate(now, full: true);
 
@@ -109,14 +113,22 @@ class HomeScreen extends StatelessWidget {
                 const SizedBox(height: 24),
                 const _SectionLabel('THIS WEEK'),
                 const SizedBox(height: 10),
-                const Row(
+                Row(
                   children: [
                     Expanded(
-                      child: StatCard(value: '0', label: 'Sessions'),
+                      child: StatCard(
+                        value: '${weekStats.count}',
+                        label: 'Sessions',
+                      ),
                     ),
-                    SizedBox(width: 12),
+                    const SizedBox(width: 12),
                     Expanded(
-                      child: StatCard(value: '—', label: 'Avg. duration'),
+                      child: StatCard(
+                        value: weekStats.average == null
+                            ? '—'
+                            : formatDuration(weekStats.average!),
+                        label: 'Avg. duration',
+                      ),
                     ),
                   ],
                 ),

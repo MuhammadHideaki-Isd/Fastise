@@ -27,6 +27,14 @@ class FastingSession {
 
   DateTime get targetEndAt => startAt.add(plannedDuration);
 
+  /// Final length of a completed session (never negative).
+  Duration get actualDuration {
+    final seconds =
+        actualDurationSeconds ??
+        (endAt ?? startAt).difference(startAt).inSeconds;
+    return Duration(seconds: seconds < 0 ? 0 : seconds);
+  }
+
   /// Time since start (or until `endAt` once completed). Never negative, so a
   /// clock set back cannot produce a negative timer.
   Duration elapsed(DateTime now) {
