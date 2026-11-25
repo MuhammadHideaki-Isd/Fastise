@@ -4,6 +4,7 @@ import '../features/fasting/data/fasting_repository.dart';
 import '../features/fasting/domain/fasting_plan.dart';
 import '../features/fasting/domain/fasting_session_state.dart';
 import '../features/fasting/presentation/plan_selection_screen.dart';
+import '../features/fasting/presentation/session_summary_screen.dart';
 import '../features/home/presentation/home_screen.dart';
 import '../features/progress/presentation/progress_screen.dart';
 import '../features/history/presentation/history_screen.dart';
@@ -92,28 +93,66 @@ class _AppShellState extends State<AppShell> {
     }
   }
 
-  Future<void> _startFasting() =>
-      _persistSessionChange(() => _sessionState.start(_selectedPlan));
+  Future<void> _startFasting() async {
+    await _persistSessionChange(() => _sessionState.start(_selectedPlan));
+  }
 
-  Future<void> _endFasting() => _persistSessionChange(_sessionState.complete);
+  Future<void> _endFasting() async {
+    if (_isBusy || _sessionState.activeSession == null) return;
 
-  Future<void> _persistSessionChange(bool Function() change) async {
-    if (_isBusy || _isLoading || _loadError != null) return;
+    final shouldEnd = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('End fasting?'),
+        content: const Text(
+          'Your session will be saved with its actual duration.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Keep fasting'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('End session'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || shouldEnd != true) return;
+
+    final saved = await _persistSessionChange(_sessionState.complete);
+    if (!mounted || !saved) return;
+
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => SessionSummaryScreen(
+          session: _sessionState.completedSessions.first,
+        ),
+      ),
+    );
+  }
+
+  Future<bool> _persistSessionChange(bool Function() change) async {
+    if (_isBusy || _isLoading || _loadError != null) return false;
     final oldActiveSession = _sessionState.activeSession;
     final oldCompletedSessions = _sessionState.completedSessions;
     setState(() => _isBusy = true);
 
     try {
-      if (!change()) return;
+      if (!change()) return false;
       await _repository.save(_currentData());
+      return true;
     } on FastingStorageException catch (error) {
       _sessionState.restore(
         activeSession: oldActiveSession,
         completedSessions: oldCompletedSessions,
       );
       _showMessage(error.message);
+      return false;
     } on ArgumentError catch (error) {
       _showMessage(error.message?.toString() ?? 'The session time is invalid.');
+      return false;
     } finally {
       if (mounted) {
         setState(() => _isBusy = false);

@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fastise/app/app.dart';
 import 'package:fastise/features/fasting/data/fasting_repository.dart';
 import 'package:fastise/features/fasting/presentation/plan_selection_screen.dart';
+import 'package:fastise/features/fasting/presentation/session_summary_screen.dart';
 
 import 'support/memory_string_store.dart';
 
@@ -57,7 +58,7 @@ void main() {
     expect((await repository.load()).selectedPlan.id, '18-6');
   });
 
-  testWidgets('starts and ends one fasting session', (
+  testWidgets('confirms session end, shows summary, and returns home', (
     WidgetTester tester,
   ) async {
     final repository = FastingRepository(store: MemoryStringStore());
@@ -72,11 +73,30 @@ void main() {
     expect((await repository.load()).activeSession, isNotNull);
 
     await tester.tap(find.text('End fasting'));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
+    expect(find.text('End fasting?'), findsOneWidget);
+    await tester.tap(find.text('Keep fasting'));
+    await tester.pumpAndSettle();
+    expect(find.text('Fasting'), findsOneWidget);
+    expect((await repository.load()).activeSession, isNotNull);
+
+    await tester.tap(find.text('End fasting'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('End session'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SessionSummaryScreen), findsOneWidget);
+    expect(find.text('Plan'), findsOneWidget);
+    expect(find.text('Started'), findsOneWidget);
+    expect(find.text('Ended'), findsOneWidget);
+    expect(find.text('Actual duration'), findsOneWidget);
+    expect((await repository.load()).completedSessions, hasLength(1));
+
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
     expect(find.text('Not fasting'), findsOneWidget);
     expect(find.text('Start fasting'), findsOneWidget);
-    expect((await repository.load()).completedSessions, hasLength(1));
   });
 
   testWidgets(
@@ -134,6 +154,29 @@ void main() {
 
     expect(find.text('Not fasting'), findsOneWidget);
     expect(find.text('Start fasting'), findsOneWidget);
+    expect(find.text('Storage write failed.'), findsOneWidget);
+  });
+
+  testWidgets('keeps session active when saving completion fails', (
+    WidgetTester tester,
+  ) async {
+    final store = MemoryStringStore();
+    final repository = FastingRepository(store: store);
+    await tester.pumpWidget(FastiseApp(repository: repository));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Start fasting'));
+    await tester.pumpAndSettle();
+    store.writeError = const FastingStorageException('Storage write failed.');
+
+    await tester.tap(find.text('End fasting'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('End session'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SessionSummaryScreen), findsNothing);
+    expect(find.text('Fasting'), findsOneWidget);
+    expect((await repository.load()).activeSession, isNotNull);
     expect(find.text('Storage write failed.'), findsOneWidget);
   });
 }
