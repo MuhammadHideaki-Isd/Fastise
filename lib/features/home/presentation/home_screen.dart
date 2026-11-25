@@ -1,13 +1,54 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../shared/widgets/empty_state.dart';
+import '../../../shared/widgets/stat_card.dart';
+import 'widgets/fasting_timer.dart';
 
+/// Static idle-state dashboard (Task 3). Plan, stats, and the Start CTA are
+/// wired to real state in later tasks (4, 5, 6, 7).
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, required this.onProfileTap});
+
+  final VoidCallback onProfileTap;
+
+  static const _weekdays = [
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+    'Sunday',
+  ];
+  static const _months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+
+  static String _greeting(int hour) {
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final now = DateTime.now();
+    final dateText =
+        '${_weekdays[now.weekday - 1]}, ${now.day} ${_months[now.month - 1]}';
+
     return SafeArea(
       child: CustomScrollView(
         slivers: [
@@ -22,14 +63,14 @@ class HomeScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Good morning',
+                            dateText,
                             style: theme.textTheme.bodyMedium?.copyWith(
                               color: AppColors.textSecondary,
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Your fasting space',
+                            _greeting(now.hour),
                             style: theme.textTheme.headlineSmall?.copyWith(
                               fontWeight: FontWeight.w700,
                             ),
@@ -37,61 +78,39 @@ class HomeScreen extends StatelessWidget {
                         ],
                       ),
                     ),
-                    CircleAvatar(
-                      radius: 22,
-                      backgroundColor: AppColors.primary.withValues(
-                        alpha: 0.12,
+                    IconButton(
+                      tooltip: 'Open profile',
+                      onPressed: onProfileTap,
+                      style: IconButton.styleFrom(
+                        minimumSize: const Size(48, 48),
+                        backgroundColor: AppColors.primarySoft,
+                        foregroundColor: AppColors.primary,
                       ),
-                      child: const Icon(
-                        Icons.person_outline,
-                        color: AppColors.primary,
-                      ),
+                      icon: const Icon(Icons.person_outline),
                     ),
                   ],
                 ),
-                const SizedBox(height: 28),
-                Text(
-                  'CURRENT STATUS',
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 24),
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(24),
                     child: Column(
                       children: [
-                        Text(
-                          'Not fasting',
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          '00:00:00',
-                          style: theme.textTheme.displaySmall?.copyWith(
-                            color: AppColors.primaryDark,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 2,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Ready when you are',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
+                        // Static idle values; real timer arrives in Task 6.
+                        const FastingTimer(
+                          statusLabel: 'Not fasting',
+                          timeText: '00:00:00',
+                          progress: 0,
+                          caption: 'Target 16 h',
                         ),
                         const SizedBox(height: 24),
-                        SizedBox(
+                        const SizedBox(
                           width: double.infinity,
+                          height: 52,
+                          // null = disabled: session start is Task 5/6.
                           child: FilledButton(
-                            onPressed: () {},
-                            child: const Text('Start fasting'),
+                            onPressed: null,
+                            child: Text('Start Fasting'),
                           ),
                         ),
                       ],
@@ -99,15 +118,9 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 24),
-                Text(
-                  'YOUR PLAN',
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: AppColors.textSecondary,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.2,
-                  ),
-                ),
+                const _SectionLabel('YOUR PLAN'),
                 const SizedBox(height: 10),
+                // Placeholder default plan until selection exists (Task 4).
                 Card(
                   child: ListTile(
                     contentPadding: const EdgeInsets.symmetric(
@@ -115,39 +128,39 @@ class HomeScreen extends StatelessWidget {
                       vertical: 8,
                     ),
                     leading: const CircleAvatar(
-                      backgroundColor: Color(0xFFE8F0EB),
+                      backgroundColor: AppColors.primarySoft,
                       child: Icon(Icons.schedule, color: AppColors.primary),
                     ),
                     title: Text(
-                      '16:8 Intermittent fasting',
+                      '16:8',
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    subtitle: const Text('16 hours fasting · 8 hours eating'),
-                    trailing: const Icon(Icons.chevron_right),
+                    subtitle: const Text('16 h fasting · 8 h eating window'),
                   ),
                 ),
                 const SizedBox(height: 24),
-                Text(
-                  'THIS WEEK',
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: AppColors.textSecondary,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.2,
-                  ),
-                ),
+                const _SectionLabel('THIS WEEK'),
                 const SizedBox(height: 10),
-                Row(
-                  children: const [
+                const Row(
+                  children: [
                     Expanded(
-                      child: _StatCard(value: '0', label: 'Sessions'),
+                      child: StatCard(value: '0', label: 'Sessions'),
                     ),
                     SizedBox(width: 12),
                     Expanded(
-                      child: _StatCard(value: '—', label: 'Avg. duration'),
+                      child: StatCard(value: '—', label: 'Avg. duration'),
                     ),
                   ],
+                ),
+                const SizedBox(height: 24),
+                const _SectionLabel('RECENT ACTIVITY'),
+                const SizedBox(height: 10),
+                const EmptyState(
+                  icon: Icons.history,
+                  title: 'No sessions yet',
+                  message: 'Completed fasts will appear here.',
                 ),
               ]),
             ),
@@ -158,36 +171,19 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-class _StatCard extends StatelessWidget {
-  const _StatCard({required this.value, required this.label});
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel(this.text);
 
-  final String value;
-  final String label;
+  final String text;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              value,
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                color: AppColors.primaryDark,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
-            ),
-          ],
-        ),
+    return Text(
+      text,
+      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+        color: AppColors.textSecondary,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 1.2,
       ),
     );
   }

@@ -29,17 +29,22 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   int _selectedIndex = 0;
 
-  static const _screens = [
-    HomeScreen(),
-    ProgressScreen(),
-    HistoryScreen(),
-    ProfileScreen(),
-  ];
+  static const _profileIndex = 3;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(index: _selectedIndex, children: _screens),
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: [
+          HomeScreen(
+            onProfileTap: () => setState(() => _selectedIndex = _profileIndex),
+          ),
+          const ProgressScreen(),
+          const HistoryScreen(),
+          const ProfileScreen(),
+        ],
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (index) {
