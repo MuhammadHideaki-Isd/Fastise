@@ -11,37 +11,27 @@ class FastingPlan {
   final int fastingHours;
   final int eatingHours;
 
-  String get label => '$fastingHours:$eatingHours';
+  Duration get fastingDuration => Duration(hours: fastingHours);
 
-  Map<String, Object> toJson() => {
-    'id': id,
-    'name': name,
-    'fastingHours': fastingHours,
-    'eatingHours': eatingHours,
-  };
+  static const presets = <FastingPlan>[
+    FastingPlan(id: '14-10', name: '14:10', fastingHours: 14, eatingHours: 10),
+    FastingPlan(id: '16-8', name: '16:8', fastingHours: 16, eatingHours: 8),
+    FastingPlan(id: '18-6', name: '18:6', fastingHours: 18, eatingHours: 6),
+    FastingPlan(id: '20-4', name: '20:4', fastingHours: 20, eatingHours: 4),
+  ];
 
-  factory FastingPlan.fromJson(Map<String, dynamic> json) {
-    final id = json['id'];
-    final name = json['name'];
-    final fastingHours = json['fastingHours'];
-    final eatingHours = json['eatingHours'];
+  static const defaultPlan = FastingPlan(
+    id: '16-8',
+    name: '16:8',
+    fastingHours: 16,
+    eatingHours: 8,
+  );
 
-    if (id is! String ||
-        id.isEmpty ||
-        name is! String ||
-        name.isEmpty ||
-        fastingHours is! int ||
-        eatingHours is! int ||
-        fastingHours <= 0 ||
-        eatingHours <= 0) {
-      throw const FormatException('Saved fasting plan is invalid.');
+  /// Returns null for unknown ids (e.g. malformed stored data).
+  static FastingPlan? byId(String? id) {
+    for (final plan in presets) {
+      if (plan.id == id) return plan;
     }
-
-    return FastingPlan(
-      id: id,
-      name: name,
-      fastingHours: fastingHours,
-      eatingHours: eatingHours,
-    );
+    return null;
   }
 }

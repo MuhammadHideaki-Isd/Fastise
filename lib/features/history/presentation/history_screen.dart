@@ -5,260 +5,154 @@ import '../../../app/theme/app_colors.dart';
 import '../../fasting/domain/fasting_session.dart';
 import '../../fasting/domain/fasting_timer.dart';
 
-class HistoryScreen extends StatelessWidget {
-  const HistoryScreen({super.key, required this.sessions});
+import '../../../app/theme/app_colors.dart';
+import '../../../shared/utils/formatters.dart';
+import '../../../shared/widgets/empty_state.dart';
+import '../../fasting/application/fasting_scope.dart';
+import '../../fasting/domain/fasting_stats.dart';
+import '../../fasting/presentation/session_history_tile.dart';
 
-  final List<FastingSession> sessions;
+enum _Range { all, week }
+
+class HistoryScreen extends StatefulWidget {
+  const HistoryScreen({super.key});
+
+  @override
+  State<HistoryScreen> createState() => _HistoryScreenState();
+}
+
+class _HistoryScreenState extends State<HistoryScreen> {
+  _Range _range = _Range.all;
 
   @override
   Widget build(BuildContext context) {
+    final controller = FastingScope.of(context);
     final theme = Theme.of(context);
-    final completedSessions =
-        sessions
-            .where(
-              (session) => session.status == FastingSessionStatus.completed,
-            )
-            .toList()
-          ..sort((first, second) => second.endAt!.compareTo(first.endAt!));
+    final all = controller.sessions; // newest first
+    final sessions = _range == _Range.week
+        ? sessionsSince(all, startOfWeek(controller.now()))
+        : all;
 
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'History',
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '${completedSessions.length} completed '
-              '${completedSessions.length == 1 ? 'session' : 'sessions'}',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 20),
-            Expanded(
-              child: completedSessions.isEmpty
-                  ? const _HistoryEmptyState()
-                  : ListView.separated(
-                      padding: const EdgeInsets.only(bottom: 20),
-                      itemCount: completedSessions.length,
-                      separatorBuilder: (context, index) =>
-                          const SizedBox(height: 12),
-                      itemBuilder: (context, index) => _HistorySessionCard(
-                        key: ValueKey(completedSessions[index].id),
-                        session: completedSessions[index],
-                      ),
-                    ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _HistoryEmptyState extends StatelessWidget {
-  const _HistoryEmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 72,
-              height: 72,
-              decoration: const BoxDecoration(
-                color: Color(0xFFE8F0EB),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                PhosphorIconsRegular.clockCounterClockwise,
-                size: 34,
-                color: AppColors.primary,
-              ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'No completed sessions yet',
-              textAlign: TextAlign.center,
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Completed fasting sessions will appear here.',
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _HistorySessionCard extends StatelessWidget {
-  const _HistorySessionCard({super.key, required this.session});
-
-  final FastingSession session;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final endAt = session.endAt!;
-    final duration = Duration(seconds: session.actualDurationSeconds!);
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final durationLabel = FastingTimerSnapshot.formatDuration(
-                  duration,
-                );
-                final planDetails = Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      session.planNameSnapshot,
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        color: AppColors.primaryDark,
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'History',
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontFamily: AppColors.fontDisplay,
                         fontWeight: FontWeight.w700,
+                        letterSpacing: -0.4,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _formatDate(endAt),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
+                  ),
+                  if (sessions.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 11,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primarySoft,
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.32),
+                        ),
+                      ),
+                      child: Text(
+                        '${sessions.length} logged',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: AppColors.primaryBright,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
-                  ],
-                );
-                final durationDetails = Column(
-                  crossAxisAlignment: constraints.maxWidth < 360
-                      ? CrossAxisAlignment.start
-                      : CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      durationLabel,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    Text(
-                      'actual duration',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                );
-
-                if (constraints.maxWidth < 360) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      planDetails,
-                      const SizedBox(height: 10),
-                      durationDetails,
-                    ],
-                  );
-                }
-
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(child: planDetails),
-                    const SizedBox(width: 12),
-                    durationDetails,
-                  ],
-                );
-              },
-            ),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 16,
-              runSpacing: 8,
-              children: [
-                _SessionTime(
-                  icon: PhosphorIconsRegular.playCircle,
-                  text: 'Start ${_formatTime(context, session.startAt)}',
-                  style: theme.textTheme.bodySmall,
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Tap any completed session to inspect its details.',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textSecondary,
                 ),
-                _SessionTime(
-                  icon: PhosphorIconsRegular.stopCircle,
-                  text: 'End ${_formatTime(context, endAt)}',
-                  style: theme.textTheme.bodySmall,
-                ),
-              ],
-            ),
-          ],
+              ),
+              const SizedBox(height: 18),
+              SegmentedButton<_Range>(
+                showSelectedIcon: false,
+                segments: const [
+                  ButtonSegment(value: _Range.all, label: Text('All')),
+                  ButtonSegment(value: _Range.week, label: Text('This week')),
+                ],
+                selected: {_range},
+                onSelectionChanged: (s) => setState(() => _range = s.first),
+              ),
+              const SizedBox(height: 22),
+              if (sessions.isEmpty)
+                EmptyState(
+                  icon: Icons.history_rounded,
+                  title: all.isEmpty
+                      ? 'No sessions yet'
+                      : 'No sessions this week',
+                  message: all.isEmpty
+                      ? 'Completed fasts will appear here.'
+                      : 'Switch to All to see earlier sessions.',
+                )
+              else
+                for (var i = 0; i < sessions.length; i++) ...[
+                  if (i == 0 ||
+                      !isSameDay(
+                        sessions[i].startAt,
+                        sessions[i - 1].startAt,
+                      )) ...[
+                    if (i != 0) const SizedBox(height: 16),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 9),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 7,
+                            height: 7,
+                            decoration: BoxDecoration(
+                              color: AppColors.primary,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.primary.withValues(
+                                    alpha: 0.55,
+                                  ),
+                                  blurRadius: 6,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 9),
+                          Flexible(
+                            child: Text(
+                              formatDate(sessions[i].startAt, full: true),
+                              style: theme.textTheme.labelLarge?.copyWith(
+                                color: AppColors.textSecondary,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  SessionHistoryTile(session: sessions[i]),
+                  const SizedBox(height: 10),
+                ],
+            ],
+          ),
         ),
       ),
-    );
-  }
-
-  String _formatDate(DateTime value) {
-    const months = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
-    ];
-    return '${value.day} ${months[value.month - 1]} ${value.year}';
-  }
-
-  String _formatTime(BuildContext context, DateTime value) =>
-      TimeOfDay.fromDateTime(value).format(context);
-}
-
-class _SessionTime extends StatelessWidget {
-  const _SessionTime({
-    required this.icon,
-    required this.text,
-    required this.style,
-  });
-
-  final IconData icon;
-  final String text;
-  final TextStyle? style;
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: 6,
-      children: [
-        Icon(icon, size: 18, color: AppColors.textSecondary),
-        Text(text, style: style?.copyWith(color: AppColors.textSecondary)),
-      ],
     );
   }
 }

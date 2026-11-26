@@ -1,32 +1,31 @@
 import 'package:flutter/material.dart';
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
-import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
+import 'package:flutter/services.dart';
 
-import '../features/fasting/data/fasting_repository.dart';
-import '../features/fasting/domain/fasting_plan.dart';
-import '../features/fasting/domain/fasting_session_state.dart';
-import '../features/fasting/presentation/plan_selection_screen.dart';
-import '../features/fasting/presentation/session_summary_screen.dart';
-import '../features/home/presentation/home_screen.dart';
-import '../features/progress/presentation/progress_screen.dart';
+import '../features/fasting/application/fasting_controller.dart';
+import '../features/fasting/application/fasting_scope.dart';
 import '../features/history/presentation/history_screen.dart';
+import '../features/home/presentation/home_screen.dart';
 import '../features/profile/presentation/profile_screen.dart';
+import '../features/progress/presentation/progress_screen.dart';
 import 'theme/app_colors.dart';
 import 'theme/app_theme.dart';
 
 class FastiseApp extends StatelessWidget {
-  const FastiseApp({super.key, this.repository});
+  const FastiseApp({super.key, required this.controller});
 
-  final FastingRepository? repository;
+  final FastingController controller;
 
   @override
   Widget build(BuildContext context) {
-    return LiquidGlassWidgets.wrap(
-      brightnessResolver: Theme.maybeBrightnessOf,
+    return FastingScope(
+      controller: controller,
       child: MaterialApp(
-        title: 'Fasting Tracker',
-        theme: AppTheme.light(),
-        home: AppShell(repository: repository),
+        title: 'Fastise',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.dark(),
+        darkTheme: AppTheme.dark(),
+        themeMode: ThemeMode.dark,
+        home: const AppShell(),
       ),
     );
   }
@@ -43,88 +42,99 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   int _selectedIndex = 0;
-  late final FastingRepository _repository;
-  final FastingSessionState _sessionState = FastingSessionState();
-  FastingPlan _selectedPlan = FastingAppData.defaultPlan;
-  bool _isLoading = true;
-  bool _isBusy = false;
-  bool _glassEffectEnabled = true;
-  Object? _loadError;
+
+  static const _profileIndex = 3;
 
   @override
-  void initState() {
-    super.initState();
-    _repository = widget.repository ?? FastingRepository();
-    _sessionState.addListener(_handleSessionChanged);
-    _loadData();
-  }
+  Widget build(BuildContext context) {
+    final isFasting = FastingScope.of(context).isFasting;
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final horizontalInset = screenWidth < 360 ? 8.0 : 16.0;
+    final bottomInset = screenWidth < 360 ? 6.0 : 12.0;
 
-  @override
-  void dispose() {
-    _sessionState.removeListener(_handleSessionChanged);
-    _sessionState.dispose();
-    super.dispose();
-  }
-
-  void _handleSessionChanged() {
-    if (mounted && !_isLoading && !_isBusy) {
-      setState(() {});
-    }
-  }
-
-  Future<void> _loadData() async {
-    try {
-      final data = await _repository.load();
-      if (!mounted) return;
-      _selectedPlan = data.selectedPlan;
-      _glassEffectEnabled = data.glassEffectEnabled;
-      _sessionState.restore(
-        activeSession: data.activeSession,
-        completedSessions: data.completedSessions,
-      );
-      setState(() {
-        _isLoading = false;
-        _loadError = null;
-      });
-    } on FastingStorageException catch (error) {
-      if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-        _loadError = error;
-      });
-    } on FormatException catch (error) {
-      if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-        _loadError = error;
-      });
-    }
-  }
-
-  Future<void> _startFasting() async {
-    await _persistSessionChange(() => _sessionState.start(_selectedPlan));
-  }
-
-  Future<void> _endFasting() async {
-    if (_isBusy || _sessionState.activeSession == null) return;
-
-    final shouldEnd = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('End fasting?'),
-        content: const Text(
-          'Your session will be saved with its actual duration.',
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: AppTheme.overlayStyle,
+      child: Scaffold(
+        body: IndexedStack(
+          index: _selectedIndex,
+          children: [
+            HomeScreen(
+              onProfileTap: () =>
+                  setState(() => _selectedIndex = _profileIndex),
+            ),
+            const ProgressScreen(),
+            const HistoryScreen(),
+            const ProfileScreen(),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Keep fasting'),
+        bottomNavigationBar: SafeArea(
+          top: false,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              horizontalInset,
+              4,
+              horizontalInset,
+              bottomInset,
+            ),
+            child: Align(
+              heightFactor: 1,
+              alignment: Alignment.bottomCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 560),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceElevated,
+                    borderRadius: BorderRadius.circular(26),
+                    border: Border.all(color: AppColors.borderHighlight),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.38),
+                        blurRadius: 24,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(26),
+                    child: NavigationBar(
+                      selectedIndex: _selectedIndex,
+                      onDestinationSelected: (index) {
+                        setState(() => _selectedIndex = index);
+                      },
+                      destinations: [
+                        NavigationDestination(
+                          icon: Badge(
+                            isLabelVisible: isFasting && _selectedIndex != 0,
+                            backgroundColor: AppColors.primary,
+                            smallSize: 8,
+                            child: const Icon(Icons.timer_outlined),
+                          ),
+                          selectedIcon: const Icon(Icons.timer_rounded),
+                          label: 'Home',
+                        ),
+                        const NavigationDestination(
+                          icon: Icon(Icons.insights_outlined),
+                          selectedIcon: Icon(Icons.insights_rounded),
+                          label: 'Progress',
+                        ),
+                        const NavigationDestination(
+                          icon: Icon(Icons.history_outlined),
+                          selectedIcon: Icon(Icons.history_rounded),
+                          label: 'History',
+                        ),
+                        const NavigationDestination(
+                          icon: Icon(Icons.person_outline_rounded),
+                          selectedIcon: Icon(Icons.person_rounded),
+                          label: 'Profile',
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('End session'),
-          ),
-        ],
+        ),
       ),
     );
     if (!mounted || shouldEnd != true) return;

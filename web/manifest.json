@@ -1,11 +1,11 @@
 {
-    "name": "fastise",
-    "short_name": "fastise",
+    "name": "Fastise",
+    "short_name": "Fastise",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#F7F8F5",
+    "theme_color": "#426B5A",
+    "description": "A local-first intermittent fasting session tracker.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

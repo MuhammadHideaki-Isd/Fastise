@@ -1,7 +1,7 @@
-import 'fasting_plan.dart';
+enum SessionStatus { active, completed }
 
-enum FastingSessionStatus { idle, active, completed }
-
+/// One fasting session. `startAt` is the single source of truth for time:
+/// elapsed/remaining/progress are always derived from it (never counted).
 class FastingSession {
   const FastingSession({
     required this.id,
@@ -11,7 +11,7 @@ class FastingSession {
     required this.plannedDurationMinutes,
     this.endAt,
     this.actualDurationSeconds,
-    required this.status,
+    this.status = SessionStatus.active,
   });
 
   final String id;
@@ -21,40 +21,52 @@ class FastingSession {
   final DateTime? endAt;
   final int plannedDurationMinutes;
   final int? actualDurationSeconds;
-  final FastingSessionStatus status;
+  final SessionStatus status;
 
-  factory FastingSession.start({
-    required String id,
-    required FastingPlan plan,
-    required DateTime startAt,
-  }) {
-    return FastingSession(
-      id: id,
-      planId: plan.id,
-      planNameSnapshot: plan.name,
-      startAt: startAt,
-      plannedDurationMinutes: plan.fastingHours * 60,
-      status: FastingSessionStatus.active,
-    );
+  Duration get plannedDuration => Duration(minutes: plannedDurationMinutes);
+
+  DateTime get targetEndAt => startAt.add(plannedDuration);
+
+  /// Final length of a completed session (never negative).
+  Duration get actualDuration {
+    final seconds =
+        actualDurationSeconds ??
+        (endAt ?? startAt).difference(startAt).inSeconds;
+    return Duration(seconds: seconds < 0 ? 0 : seconds);
   }
 
-  FastingSession completeAt(DateTime endAt) {
-    if (status != FastingSessionStatus.active) {
-      throw StateError('Only an active session can be completed.');
-    }
-    if (endAt.isBefore(startAt)) {
-      throw ArgumentError('End time cannot be before start time.');
-    }
+  /// Time since start (or until `endAt` once completed). Never negative, so a
+  /// clock set back cannot produce a negative timer.
+  Duration elapsed(DateTime now) {
+    final d = (endAt ?? now).difference(startAt);
+    return d.isNegative ? Duration.zero : d;
+  }
 
+  Duration remaining(DateTime now) {
+    final d = plannedDuration - elapsed(now);
+    return d.isNegative ? Duration.zero : d;
+  }
+
+  /// 0..1; 0 when the planned duration is invalid.
+  double progress(DateTime now) {
+    if (plannedDurationMinutes <= 0) return 0;
+    final p = elapsed(now).inMilliseconds / plannedDuration.inMilliseconds;
+    return p.clamp(0.0, 1.0);
+  }
+
+  bool reachedTarget(DateTime now) => elapsed(now) >= plannedDuration;
+
+  FastingSession complete(DateTime at) {
+    final end = at.isBefore(startAt) ? startAt : at;
     return FastingSession(
       id: id,
       planId: planId,
       planNameSnapshot: planNameSnapshot,
       startAt: startAt,
-      endAt: endAt,
+      endAt: end,
       plannedDurationMinutes: plannedDurationMinutes,
-      actualDurationSeconds: endAt.difference(startAt).inSeconds,
-      status: FastingSessionStatus.completed,
+      actualDurationSeconds: end.difference(startAt).inSeconds,
+      status: SessionStatus.completed,
     );
   }
 
@@ -62,84 +74,48 @@ class FastingSession {
     'id': id,
     'planId': planId,
     'planNameSnapshot': planNameSnapshot,
-    'startAt': startAt.toIso8601String(),
-    'endAt': endAt?.toIso8601String(),
+    'startAt': startAt.toUtc().toIso8601String(),
+    'endAt': endAt?.toUtc().toIso8601String(),
     'plannedDurationMinutes': plannedDurationMinutes,
     'actualDurationSeconds': actualDurationSeconds,
     'status': status.name,
   };
 
-  factory FastingSession.fromJson(Map<String, dynamic> json) {
-    final id = json['id'];
-    final planId = json['planId'];
-    final planNameSnapshot = json['planNameSnapshot'];
-    final startAtValue = json['startAt'];
-    final endAtValue = json['endAt'];
-    final plannedDurationMinutes = json['plannedDurationMinutes'];
-    final actualDurationSeconds = json['actualDurationSeconds'];
-    final statusValue = json['status'];
-
-    if (id is! String ||
-        id.isEmpty ||
-        planId is! String ||
-        planId.isEmpty ||
-        planNameSnapshot is! String ||
-        planNameSnapshot.isEmpty ||
-        startAtValue is! String ||
-        plannedDurationMinutes is! int ||
-        plannedDurationMinutes <= 0 ||
-        statusValue is! String) {
-      throw const FormatException('Saved fasting session is invalid.');
-    }
-
-    final startAt = DateTime.tryParse(startAtValue);
-    final endAt = endAtValue == null
-        ? null
-        : endAtValue is String
-        ? DateTime.tryParse(endAtValue)
-        : null;
-    FastingSessionStatus? status;
-    for (final value in FastingSessionStatus.values) {
-      if (value.name == statusValue) {
-        status = value;
-        break;
+  /// Returns null if the data is missing or malformed (never throws).
+  static FastingSession? tryFromJson(Object? json) {
+    if (json is! Map) return null;
+    try {
+      final id = json['id'];
+      final planId = json['planId'];
+      final name = json['planNameSnapshot'];
+      final start = DateTime.tryParse('${json['startAt']}');
+      final planned = json['plannedDurationMinutes'];
+      final status = SessionStatus.values.asNameMap()[json['status']];
+      if (id is! String ||
+          planId is! String ||
+          name is! String ||
+          start == null ||
+          planned is! int ||
+          planned <= 0 ||
+          status == null) {
+        return null;
       }
-    }
-
-    if (startAt == null ||
-        (endAtValue != null && endAt == null) ||
-        status == null ||
-        status == FastingSessionStatus.idle) {
-      throw const FormatException(
-        'Saved fasting session contains invalid data.',
+      final endRaw = json['endAt'];
+      final end = endRaw == null ? null : DateTime.tryParse('$endRaw');
+      if (status == SessionStatus.completed && end == null) return null;
+      final actual = json['actualDurationSeconds'];
+      return FastingSession(
+        id: id,
+        planId: planId,
+        planNameSnapshot: name,
+        startAt: start.toLocal(),
+        endAt: end?.toLocal(),
+        plannedDurationMinutes: planned,
+        actualDurationSeconds: actual is int ? actual : null,
+        status: status,
       );
+    } catch (_) {
+      return null;
     }
-
-    if (status == FastingSessionStatus.active &&
-        (endAt != null || actualDurationSeconds != null)) {
-      throw const FormatException('Active session has completion data.');
-    }
-
-    if (status == FastingSessionStatus.completed &&
-        (endAt == null ||
-            actualDurationSeconds is! int ||
-            actualDurationSeconds < 0 ||
-            endAt.isBefore(startAt) ||
-            actualDurationSeconds != endAt.difference(startAt).inSeconds)) {
-      throw const FormatException(
-        'Completed session has invalid duration data.',
-      );
-    }
-
-    return FastingSession(
-      id: id,
-      planId: planId,
-      planNameSnapshot: planNameSnapshot,
-      startAt: startAt,
-      endAt: endAt,
-      plannedDurationMinutes: plannedDurationMinutes,
-      actualDurationSeconds: actualDurationSeconds as int?,
-      status: status,
-    );
   }
 }

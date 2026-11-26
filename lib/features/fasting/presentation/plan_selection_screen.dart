@@ -1,145 +1,119 @@
 import 'package:flutter/material.dart';
-import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../application/fasting_controller.dart';
+import '../application/fasting_scope.dart';
 import '../domain/fasting_plan.dart';
 
-const fastingPlans = [
-  FastingPlan(id: '14-10', name: '14:10', fastingHours: 14, eatingHours: 10),
-  FastingPlan(id: '16-8', name: '16:8', fastingHours: 16, eatingHours: 8),
-  FastingPlan(id: '18-6', name: '18:6', fastingHours: 18, eatingHours: 6),
-  FastingPlan(id: '20-4', name: '20:4', fastingHours: 20, eatingHours: 4),
-];
-
 class PlanSelectionScreen extends StatefulWidget {
-  const PlanSelectionScreen({
-    super.key,
-    required this.initialPlan,
-    required this.onSave,
-  });
-
-  final FastingPlan initialPlan;
-  final Future<bool> Function(FastingPlan) onSave;
+  const PlanSelectionScreen({super.key});
 
   @override
   State<PlanSelectionScreen> createState() => _PlanSelectionScreenState();
 }
 
 class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
-  late FastingPlan _selectedPlan;
-  bool _isSaving = false;
+  FastingPlan? _selected;
 
-  @override
-  void initState() {
-    super.initState();
-    _selectedPlan = widget.initialPlan;
+  void _save(FastingController controller, FastingPlan plan) {
+    controller.selectPlan(plan);
+    Navigator.of(context).pop();
   }
 
   @override
   Widget build(BuildContext context) {
+    final controller = FastingScope.of(context);
+    final selected = _selected ?? controller.selectedPlan;
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Choose your plan')),
+      appBar: AppBar(title: const Text('Fasting plan')),
       body: SafeArea(
-        top: false,
-        child: Column(
-          children: [
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-                children: [
-                  Text(
-                    'Choose a fasting schedule',
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Select a preset for your future fasting sessions.',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textSecondary,
-                      height: 1.5,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  ...fastingPlans.map(
-                    (plan) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _PlanCard(
-                        plan: plan,
-                        selected: plan.id == _selectedPlan.id,
-                        onTap: _isSaving
-                            ? null
-                            : () => setState(() => _selectedPlan = plan),
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: Column(
+              children: [
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                    children: [
+                      Text(
+                        'Choose your fasting plan',
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontFamily: AppColors.fontDisplay,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.4,
+                        ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(
-                          PhosphorIconsRegular.info,
-                          size: 20,
-                          color: AppColors.primary,
+                      const SizedBox(height: 8),
+                      Text(
+                        'Pick a schedule to track. A plan change applies to '
+                        'your next session, not one that is already running.',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textSecondary,
+                          height: 1.48,
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            'Fasting may not be suitable for everyone. This app is a tracking tool, not medical advice.',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: AppColors.primaryDark,
-                              height: 1.5,
-                            ),
-                          ),
+                      ),
+                      const SizedBox(height: 20),
+                      for (final plan in FastingPlan.presets) ...[
+                        _PlanCard(
+                          plan: plan,
+                          selected: plan.id == selected.id,
+                          onTap: () => setState(() => _selected = plan),
                         ),
+                        const SizedBox(height: 12),
                       ],
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(
+                              Icons.info_outline_rounded,
+                              size: 20,
+                              color: AppColors.accentWarm,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'Fastise is a tracking tool, not '
+                                'medical advice. Fasting may not be suitable '
+                                'for everyone. Consult a qualified healthcare '
+                                'professional if you are unsure whether '
+                                'fasting is appropriate for you.',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: AppColors.textSecondary,
+                                  height: 1.48,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: () => _save(controller, selected),
+                      child: const Text('Save Plan'),
                     ),
                   ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-              child: SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: FilledButton(
-                  onPressed: _isSaving
-                      ? null
-                      : () async {
-                          final navigator = Navigator.of(context);
-                          setState(() => _isSaving = true);
-                          try {
-                            final saved = await widget.onSave(_selectedPlan);
-                            if (saved && mounted) {
-                              navigator.pop();
-                            }
-                          } finally {
-                            if (mounted) {
-                              setState(() => _isSaving = false);
-                            }
-                          }
-                        },
-                  child: _isSaving
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Save plan'),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -155,74 +129,161 @@ class _PlanCard extends StatelessWidget {
 
   final FastingPlan plan;
   final bool selected;
-  final VoidCallback? onTap;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.all(18),
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
         decoration: BoxDecoration(
-          color: selected
-              ? AppColors.primary.withValues(alpha: 0.08)
-              : AppColors.surface,
-          borderRadius: BorderRadius.circular(20),
+          color: selected ? AppColors.surfaceElevated : AppColors.surface,
+          borderRadius: BorderRadius.circular(22),
+          gradient: selected
+              ? LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: const Alignment(0.75, 1.0),
+                  stops: const [0.0, 0.48, 1.0],
+                  colors: [
+                    AppColors.surfaceTint(
+                      AppColors.primary,
+                      0.18,
+                      AppColors.surfaceElevated,
+                    ),
+                    AppColors.surfaceTint(
+                      AppColors.primary,
+                      0.05,
+                      AppColors.surfaceElevated,
+                    ),
+                    AppColors.surfaceElevated,
+                  ],
+                )
+              : null,
           border: Border.all(
             color: selected ? AppColors.primary : AppColors.border,
-            width: selected ? 2 : 1,
+            width: selected ? 1.6 : 1,
           ),
         ),
-        child: Row(
-          children: [
-            Expanded(
+        clipBehavior: Clip.antiAlias,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(22),
+            child: Padding(
+              padding: const EdgeInsets.all(18),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    plan.label,
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      color: selected
-                          ? AppColors.primaryDark
-                          : AppColors.textPrimary,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              plan.name,
+                              style: theme.textTheme.titleLarge?.copyWith(
+                                fontFamily: AppColors.fontDisplay,
+                                fontWeight: FontWeight.w700,
+                                color: selected
+                                    ? AppColors.primaryBright
+                                    : AppColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${plan.fastingHours} h fasting · '
+                              '${plan.eatingHours} h eating window',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      if (selected)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 11,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.check_rounded,
+                                size: 16,
+                                color: AppColors.onPrimary,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Selected',
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  color: AppColors.onPrimary,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      else
+                        Container(
+                          width: 24,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: AppColors.borderHighlight,
+                              width: 2,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '${plan.fastingHours} hours fasting · ${plan.eatingHours} hours eating',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textSecondary,
+                  const SizedBox(height: 15),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(999),
+                    child: SizedBox(
+                      height: 6,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(
+                            flex: plan.fastingHours,
+                            child: ColoredBox(
+                              color: selected
+                                  ? AppColors.primary
+                                  : AppColors.primary.withValues(alpha: 0.55),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            flex: plan.eatingHours,
+                            child: ColoredBox(
+                              color: AppColors.accentWarm.withValues(
+                                alpha: selected ? 0.65 : 0.35,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
-            SizedBox(
-              width: 28,
-              height: 28,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: selected ? AppColors.primary : Colors.transparent,
-                  border: Border.all(
-                    color: selected ? AppColors.primary : AppColors.border,
-                    width: 2,
-                  ),
-                ),
-                child: selected
-                    ? const Icon(
-                        PhosphorIconsRegular.check,
-                        size: 18,
-                        color: Colors.white,
-                      )
-                    : null,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

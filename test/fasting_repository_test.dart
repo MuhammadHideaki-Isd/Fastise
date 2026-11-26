@@ -1,118 +1,153 @@
-import 'dart:convert';
-
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'package:fastise/features/fasting/application/fasting_controller.dart';
 import 'package:fastise/features/fasting/data/fasting_repository.dart';
 import 'package:fastise/features/fasting/domain/fasting_plan.dart';
 import 'package:fastise/features/fasting/domain/fasting_session.dart';
 
-import 'support/memory_string_store.dart';
+Future<FastingController> _open(DateTime Function() clock) async {
+  final prefs = await SharedPreferences.getInstance();
+  return FastingController(clock: clock, repository: FastingRepository(prefs));
+}
 
 void main() {
-  const plan = FastingPlan(
-    id: '18-6',
-    name: '18:6',
-    fastingHours: 18,
-    eatingHours: 6,
-  );
-  final startAt = DateTime(2026, 11, 25, 8);
+  late DateTime clock;
+  DateTime now() => clock;
 
-  test('returns default plan and no sessions when storage is empty', () async {
-    final repository = FastingRepository(store: MemoryStringStore());
-
-    final data = await repository.load();
-
-    expect(data.selectedPlan.id, '16-8');
-    expect(data.sessions, isEmpty);
-    expect(data.glassEffectEnabled, isTrue);
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+    clock = DateTime(2026, 1, 1, 8);
   });
 
-  test(
-    'round trips selected plan, active session, and completed history',
-    () async {
-      final store = MemoryStringStore();
-      final repository = FastingRepository(store: store);
-      final active = FastingSession.start(
-        id: 'active-session',
-        plan: plan,
-        startAt: startAt,
-      );
-      final completedStartAt = startAt.subtract(const Duration(days: 1));
-      final completed = FastingSession.start(
-        id: 'completed-session',
-        plan: plan,
-        startAt: completedStartAt,
-      ).completeAt(completedStartAt.add(const Duration(hours: 6)));
-      final expected = FastingAppData(
-        selectedPlan: plan,
-        sessions: [active, completed],
-      );
-
-      await repository.save(expected);
-      final restored = await repository.load();
-
-      expect(restored.selectedPlan.id, plan.id);
-      expect(restored.selectedPlan.fastingHours, plan.fastingHours);
-      expect(restored.activeSession?.id, active.id);
-      expect(restored.completedSessions.single.endAt, completed.endAt);
-      expect(
-        restored.completedSessions.single.actualDurationSeconds,
-        completed.actualDurationSeconds,
-      );
-    },
-  );
-
-  test('rejects malformed saved data instead of silently resetting', () async {
-    final store = MemoryStringStore()
-      ..values['fastise.app_data.v1'] = '{bad json';
-    final repository = FastingRepository(store: store);
-
-    await expectLater(repository.load(), throwsFormatException);
+  test('fresh install gives defaults', () async {
+    final c = await _open(now);
+    expect(c.selectedPlan.id, '16-8');
+    expect(c.isFasting, isFalse);
+    expect(c.sessions, isEmpty);
   });
 
-  test('restores the glass setting and defaults it for older saved data', () {
-    final data = const FastingAppData(
-      selectedPlan: FastingAppData.defaultPlan,
-      sessions: [],
-      glassEffectEnabled: false,
-    );
+  test('selected plan survives a restart', () async {
+    final c = await _open(now);
+    c.selectPlan(FastingPlan.byId('18-6')!);
+    await pumpEventQueue();
 
-    final restored = FastingAppData.fromJson(data.toJson());
-    final olderData = FastingAppData.fromJson(
-      Map<String, dynamic>.from(data.toJson())..remove('glassEffectEnabled'),
-    );
-
-    expect(restored.glassEffectEnabled, isFalse);
-    expect(olderData.glassEffectEnabled, isTrue);
+    final reopened = await _open(now);
+    expect(reopened.selectedPlan.id, '18-6');
   });
 
-  test('rejects multiple active sessions in saved data', () async {
-    final session = FastingSession.start(
-      id: 'session-one',
-      plan: plan,
-      startAt: startAt,
-    );
-    final data = FastingAppData(
-      selectedPlan: plan,
-      sessions: [
-        session,
-        FastingSession.start(id: 'session-two', plan: plan, startAt: startAt),
-      ],
-    );
-    final store = MemoryStringStore()
-      ..values['fastise.app_data.v1'] = jsonEncode(data.toJson());
-    final repository = FastingRepository(store: store);
+  test('active session is restored with the original startAt', () async {
+    final c = await _open(now);
+    c.startFasting();
+    await pumpEventQueue();
 
-    await expectLater(repository.load(), throwsFormatException);
+    // "App closed" for 5 hours, then reopened.
+    clock = clock.add(const Duration(hours: 5));
+    final reopened = await _open(now);
+
+    final s = reopened.activeSession!;
+    expect(s.startAt.isAtSameMomentAs(DateTime(2026, 1, 1, 8)), isTrue);
+    expect(s.elapsed(clock), const Duration(hours: 5));
+    expect(reopened.isFasting, isTrue);
+    expect(reopened.startFasting(), isNull, reason: 'no second active session');
   });
 
-  test('clears only the Fastise state key', () async {
-    final store = MemoryStringStore()
-      ..values['fastise.app_data.v1'] = 'saved'
-      ..values['other-app-key'] = 'untouched';
-    final repository = FastingRepository(store: store);
+  test('target passed while closed: still active, not auto-ended', () async {
+    final c = await _open(now);
+    c.startFasting();
+    await pumpEventQueue();
 
-    await repository.clear();
+    clock = clock.add(const Duration(hours: 30));
+    final reopened = await _open(now);
+    expect(reopened.isFasting, isTrue);
+    expect(reopened.activeSession!.reachedTarget(clock), isTrue);
+  });
 
-    expect(store.values, {'other-app-key': 'untouched'});
+  test('completed sessions persist and the active slot is cleared', () async {
+    final c = await _open(now);
+    c.startFasting();
+    clock = clock.add(const Duration(hours: 2));
+    final done = c.endFasting()!;
+    await pumpEventQueue();
+
+    final reopened = await _open(now);
+    expect(reopened.isFasting, isFalse);
+    expect(reopened.sessions.single.id, done.id);
+    expect(reopened.sessions.single.actualDurationSeconds, 7200);
+  });
+
+  test('cancelled session is not restored', () async {
+    final c = await _open(now);
+    c.startFasting();
+    c.cancelFasting();
+    await pumpEventQueue();
+
+    final reopened = await _open(now);
+    expect(reopened.isFasting, isFalse);
+    expect(reopened.sessions, isEmpty);
+  });
+
+  test('malformed stored data falls back safely', () async {
+    SharedPreferences.setMockInitialValues({
+      'selected_plan_id': 'nonsense',
+      'active_session': '{not json',
+      'completed_sessions': 'also not json',
+    });
+    final c = await _open(now);
+    expect(c.selectedPlan.id, '16-8');
+    expect(c.isFasting, isFalse);
+    expect(c.sessions, isEmpty);
+  });
+
+  test('wrong value types do not crash', () async {
+    SharedPreferences.setMockInitialValues({
+      'selected_plan_id': 42,
+      'active_session': 7,
+      'completed_sessions': true,
+    });
+    final c = await _open(now);
+    expect(c.selectedPlan.id, '16-8');
+    expect(c.sessions, isEmpty);
+  });
+
+  test('bad entries are dropped, good ones kept (newest first)', () async {
+    final older = FastingSession(
+      id: 'a',
+      planId: '16-8',
+      planNameSnapshot: '16:8',
+      startAt: DateTime(2026, 1, 1, 8),
+      plannedDurationMinutes: 960,
+    ).complete(DateTime(2026, 1, 1, 12));
+    final newer = FastingSession(
+      id: 'b',
+      planId: '16-8',
+      planNameSnapshot: '16:8',
+      startAt: DateTime(2026, 1, 3, 8),
+      plannedDurationMinutes: 960,
+    ).complete(DateTime(2026, 1, 3, 20));
+    final prefs = await SharedPreferences.getInstance();
+    await FastingRepository(prefs).saveCompleted([older, newer]);
+    final raw = prefs.getString('completed_sessions')!;
+    await prefs.setString(
+      'completed_sessions',
+      raw.replaceFirst('[', '[{"id":1},"junk",'),
+    );
+
+    final c = await _open(now);
+    expect(c.sessions.map((s) => s.id), ['b', 'a']);
+  });
+
+  test('an active-status entry in the completed list is ignored', () async {
+    final active = FastingSession(
+      id: 'x',
+      planId: '16-8',
+      planNameSnapshot: '16:8',
+      startAt: DateTime(2026, 1, 1, 8),
+      plannedDurationMinutes: 960,
+    );
+    final prefs = await SharedPreferences.getInstance();
+    await FastingRepository(prefs).saveCompleted([active]);
+    final c = await _open(now);
+    expect(c.sessions, isEmpty);
   });
 }
