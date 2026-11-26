@@ -36,6 +36,12 @@ abstract final class AppTheme {
           ),
         ),
       ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(minimumSize: const Size(64, 48)),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(minimumSize: const Size(64, 48)),
+      ),
       cardTheme: CardThemeData(
         color: AppColors.surface,
         elevation: 0,
