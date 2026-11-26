@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:intl/intl.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
 import '../../../app/theme/app_colors.dart';
@@ -8,6 +10,7 @@ import '../../fasting/domain/fasting_plan.dart';
 import '../../fasting/domain/fasting_session.dart';
 import '../../fasting/domain/fasting_timer.dart';
 import '../../progress/domain/progress_summary.dart';
+import 'widgets/hexagon_fasting_ring.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
@@ -85,31 +88,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     final recentSessions = widget.completedSessions.toList()
       ..sort((first, second) => second.endAt!.compareTo(first.endAt!));
-    const weekdays = [
-      'Monday',
-      'Tuesday',
-      'Wednesday',
-      'Thursday',
-      'Friday',
-      'Saturday',
-      'Sunday',
-    ];
-    const months = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
-    ];
-    final dateLabel =
-        '${weekdays[now.weekday - 1]}, ${now.day} ${months[now.month - 1]}';
+    final dateLabel = DateFormat('EEEE, d MMMM').format(now);
 
     return SafeArea(
       child: CustomScrollView(
@@ -156,82 +135,109 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 28),
-                Text(
-                  'CURRENT STATUS',
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 24),
                 Card(
                   child: Padding(
-                    padding: const EdgeInsets.all(24),
+                    padding: const EdgeInsets.all(16),
                     child: Column(
                       children: [
-                        Text(
-                          activeSession == null ? 'Not fasting' : 'Fasting',
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        SizedBox(
-                          width: 190,
-                          height: 190,
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              SizedBox(
-                                width: 190,
-                                height: 190,
-                                child: CircularProgressIndicator(
-                                  value: timerSnapshot?.progress ?? 0,
-                                  strokeWidth: 10,
-                                  backgroundColor: AppColors.border,
-                                  valueColor:
-                                      const AlwaysStoppedAnimation<Color>(
-                                        AppColors.primary,
-                                      ),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                activeSession == null
+                                    ? 'Not fasting'
+                                    : 'Fasting',
+                                style: theme.textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
-                              Column(
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 7,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(
+                                  alpha: 0.08,
+                                ),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                activeSession?.planNameSnapshot ??
+                                    widget.selectedPlan.label,
+                                style: theme.textTheme.labelLarge?.copyWith(
+                                  color: AppColors.primaryDark,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        HexagonFastingRing(
+                              progress: timerSnapshot?.progress ?? 0,
+                              semanticLabel:
+                                  '${((timerSnapshot?.progress ?? 0) * 100).round()}% of the fasting target complete',
+                              maxSize: MediaQuery.sizeOf(context).height < 700
+                                  ? 220
+                                  : 280,
+                              child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Text(
-                                    timerSnapshot?.elapsedLabel ?? '00:00:00',
-                                    style: theme.textTheme.headlineSmall
-                                        ?.copyWith(
-                                          color: AppColors.primaryDark,
-                                          fontWeight: FontWeight.w700,
-                                          letterSpacing: 1,
-                                        ),
+                                    activeSession == null
+                                        ? 'Ready to begin'
+                                        : 'Fasting for',
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: AppColors.textSecondary,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: 7),
+                                  FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      timerSnapshot?.elapsedLabel ?? '00:00:00',
+                                      style: theme.textTheme.headlineSmall
+                                          ?.copyWith(
+                                            color: AppColors.primaryDark,
+                                            fontWeight: FontWeight.w700,
+                                            letterSpacing: 0.5,
+                                            fontFeatures: const [
+                                              FontFeature.tabularFigures(),
+                                            ],
+                                          ),
+                                    ),
                                   ),
                                   const SizedBox(height: 6),
                                   Text(
-                                    '${((timerSnapshot?.progress ?? 0) * 100).round()}% complete',
+                                    activeSession == null
+                                        ? '${widget.selectedPlan.fastingHours}h target'
+                                        : 'remaining ${_compactDuration(timerSnapshot!.remaining)}',
                                     style: theme.textTheme.bodySmall?.copyWith(
+                                      color: AppColors.textSecondary,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${((timerSnapshot?.progress ?? 0) * 100).round()}% complete',
+                                    style: theme.textTheme.labelSmall?.copyWith(
                                       color: AppColors.textSecondary,
                                     ),
                                   ),
                                 ],
                               ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          timerSnapshot?.targetReached == true
-                              ? 'Target reached'
-                              : activeSession == null
-                              ? 'Ready when you are'
-                              : 'Keep going',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
+                            )
+                            .animate()
+                            .fadeIn(duration: 400.ms)
+                            .scale(
+                              begin: const Offset(0.96, 0.96),
+                              duration: 400.ms,
+                            ),
+                        const SizedBox(height: 16),
                         const SizedBox(height: 24),
                         SizedBox(
                           width: double.infinity,
@@ -256,6 +262,36 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ),
                           ),
                         ),
+                        if (activeSession != null) ...[
+                          const SizedBox(height: 16),
+                          const Divider(height: 1),
+                          const SizedBox(height: 14),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _SessionTime(
+                                  label: 'STARTED',
+                                  time: DateFormat(
+                                    'HH:mm',
+                                  ).format(activeSession.startAt),
+                                ),
+                              ),
+                              Expanded(
+                                child: _SessionTime(
+                                  label: 'TARGET',
+                                  time: DateFormat('HH:mm').format(
+                                    activeSession.startAt.add(
+                                      Duration(
+                                        minutes: activeSession
+                                            .plannedDurationMinutes,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -422,6 +458,38 @@ class _HomeScreenState extends State<HomeScreen> {
     if (hours == 0) return '${minutes}m';
     if (minutes == 0) return '${hours}h';
     return '${hours}h ${minutes}m';
+  }
+}
+
+class _SessionTime extends StatelessWidget {
+  const _SessionTime({required this.label, required this.time});
+
+  final String label;
+  final String time;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      children: [
+        Text(
+          label,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: AppColors.textSecondary,
+            letterSpacing: 1.1,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          time,
+          style: theme.textTheme.titleMedium?.copyWith(
+            color: AppColors.primaryDark,
+            fontWeight: FontWeight.w700,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        ),
+      ],
+    );
   }
 }
 

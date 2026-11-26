@@ -7,6 +7,7 @@ import 'package:fastise/app/app.dart';
 import 'package:fastise/features/fasting/data/fasting_repository.dart';
 import 'package:fastise/features/fasting/presentation/plan_selection_screen.dart';
 import 'package:fastise/features/fasting/presentation/session_summary_screen.dart';
+import 'package:fastise/features/home/presentation/widgets/hexagon_fasting_ring.dart';
 
 import 'support/memory_string_store.dart';
 
@@ -29,6 +30,7 @@ void main() {
     expect(find.text('Not fasting'), findsOneWidget);
     expect(find.text('Start fasting'), findsOneWidget);
     expect(find.text('0% complete'), findsOneWidget);
+    expect(find.byType(HexagonFastingRing), findsOneWidget);
     await tester.scrollUntilVisible(
       find.text('RECENT ACTIVITY'),
       200,
@@ -209,6 +211,9 @@ void main() {
     await tester.pump();
 
     expect(find.text('Fasting'), findsOneWidget);
+    expect(find.text('Fasting for'), findsOneWidget);
+    expect(find.text('STARTED'), findsOneWidget);
+    expect(find.text('TARGET'), findsOneWidget);
     expect(find.text('End fasting'), findsOneWidget);
     expect((await repository.load()).activeSession, isNotNull);
 
@@ -243,7 +248,7 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
     expect(find.text('No recent sessions'), findsNothing);
-    expect(find.text('16:8'), findsOneWidget);
+    expect(find.text('16:8'), findsNWidgets(2));
     await tester.tapAt(
       tester.getCenter(
         find.descendant(
