@@ -19,6 +19,7 @@ Future<bool> showConfirmationDialog(
         title: Text(
           title,
           style: textTheme.titleLarge?.copyWith(
+            fontFamily: AppColors.fontDisplay,
             fontWeight: FontWeight.w700,
             color: AppColors.textPrimary,
           ),
@@ -27,7 +28,7 @@ Future<bool> showConfirmationDialog(
           message,
           style: textTheme.bodyMedium?.copyWith(
             color: AppColors.textSecondary,
-            height: 1.45,
+            height: 1.5,
           ),
         ),
         actionsPadding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
@@ -40,10 +41,10 @@ Future<bool> showConfirmationDialog(
             style: isDestructive
                 ? FilledButton.styleFrom(
                     backgroundColor: AppColors.error,
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size(0, 44),
+                    foregroundColor: const Color(0xFF1F0B0A),
+                    minimumSize: const Size(0, 46),
                   )
-                : FilledButton.styleFrom(minimumSize: const Size(0, 44)),
+                : FilledButton.styleFrom(minimumSize: const Size(0, 46)),
             onPressed: () => Navigator.of(context).pop(true),
             child: Text(confirmLabel),
           ),

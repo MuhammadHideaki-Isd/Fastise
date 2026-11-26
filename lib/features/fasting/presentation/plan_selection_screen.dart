@@ -42,8 +42,9 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                       Text(
                         'Choose your fasting plan',
                         style: theme.textTheme.headlineSmall?.copyWith(
+                          fontFamily: AppColors.fontDisplay,
                           fontWeight: FontWeight.w700,
-                          letterSpacing: -0.3,
+                          letterSpacing: -0.4,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -52,7 +53,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                         'your next session, not one that is already running.',
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: AppColors.textSecondary,
-                          height: 1.45,
+                          height: 1.48,
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -68,8 +69,8 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: AppColors.surfaceSubtle,
-                          borderRadius: BorderRadius.circular(16),
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(18),
                           border: Border.all(color: AppColors.border),
                         ),
                         child: Row(
@@ -78,19 +79,19 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                             const Icon(
                               Icons.info_outline_rounded,
                               size: 20,
-                              color: AppColors.primary,
+                              color: AppColors.accentWarm,
                             ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                'Fasting Tracker is a tracking tool, not '
+                                'Fastise is a tracking tool, not '
                                 'medical advice. Fasting may not be suitable '
                                 'for everyone. Consult a qualified healthcare '
                                 'professional if you are unsure whether '
                                 'fasting is appropriate for you.',
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: AppColors.textSecondary,
-                                  height: 1.45,
+                                  height: 1.48,
                                 ),
                               ),
                             ),
@@ -138,16 +139,34 @@ class _PlanCard extends StatelessWidget {
       button: true,
       selected: selected,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
+        duration: const Duration(milliseconds: 200),
         curve: Curves.easeOut,
         decoration: BoxDecoration(
-          color: selected
-              ? AppColors.primarySoft.withValues(alpha: 0.55)
-              : AppColors.surface,
-          borderRadius: BorderRadius.circular(20),
+          color: selected ? AppColors.surfaceElevated : AppColors.surface,
+          borderRadius: BorderRadius.circular(22),
+          gradient: selected
+              ? LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: const Alignment(0.75, 1.0),
+                  stops: const [0.0, 0.48, 1.0],
+                  colors: [
+                    AppColors.surfaceTint(
+                      AppColors.primary,
+                      0.18,
+                      AppColors.surfaceElevated,
+                    ),
+                    AppColors.surfaceTint(
+                      AppColors.primary,
+                      0.05,
+                      AppColors.surfaceElevated,
+                    ),
+                    AppColors.surfaceElevated,
+                  ],
+                )
+              : null,
           border: Border.all(
             color: selected ? AppColors.primary : AppColors.border,
-            width: selected ? 2 : 1,
+            width: selected ? 1.6 : 1,
           ),
         ),
         clipBehavior: Clip.antiAlias,
@@ -155,7 +174,7 @@ class _PlanCard extends StatelessWidget {
           color: Colors.transparent,
           child: InkWell(
             onTap: onTap,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(22),
             child: Padding(
               padding: const EdgeInsets.all(18),
               child: Column(
@@ -170,9 +189,10 @@ class _PlanCard extends StatelessWidget {
                             Text(
                               plan.name,
                               style: theme.textTheme.titleLarge?.copyWith(
+                                fontFamily: AppColors.fontDisplay,
                                 fontWeight: FontWeight.w700,
                                 color: selected
-                                    ? AppColors.primaryDark
+                                    ? AppColors.primaryBright
                                     : AppColors.textPrimary,
                               ),
                             ),
@@ -191,7 +211,7 @@ class _PlanCard extends StatelessWidget {
                       if (selected)
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
+                            horizontal: 11,
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
@@ -204,13 +224,13 @@ class _PlanCard extends StatelessWidget {
                               const Icon(
                                 Icons.check_rounded,
                                 size: 16,
-                                color: Colors.white,
+                                color: AppColors.onPrimary,
                               ),
                               const SizedBox(width: 4),
                               Text(
                                 'Selected',
                                 style: theme.textTheme.labelMedium?.copyWith(
-                                  color: Colors.white,
+                                  color: AppColors.onPrimary,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
@@ -224,33 +244,36 @@ class _PlanCard extends StatelessWidget {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: AppColors.border,
+                              color: AppColors.borderHighlight,
                               width: 2,
                             ),
                           ),
                         ),
                     ],
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 15),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(999),
                     child: SizedBox(
                       height: 6,
                       child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Expanded(
                             flex: plan.fastingHours,
                             child: ColoredBox(
                               color: selected
                                   ? AppColors.primary
-                                  : AppColors.primary.withValues(alpha: 0.65),
+                                  : AppColors.primary.withValues(alpha: 0.55),
                             ),
                           ),
-                          const SizedBox(width: 3),
+                          const SizedBox(width: 4),
                           Expanded(
                             flex: plan.eatingHours,
-                            child: const ColoredBox(
-                              color: AppColors.primaryMuted,
+                            child: ColoredBox(
+                              color: AppColors.accentWarm.withValues(
+                                alpha: selected ? 0.65 : 0.35,
+                              ),
                             ),
                           ),
                         ],

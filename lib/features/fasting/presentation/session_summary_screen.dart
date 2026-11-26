@@ -26,28 +26,39 @@ class SessionSummaryScreen extends StatelessWidget {
               children: [
                 Expanded(
                   child: ListView(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
                     children: [
                       Center(
                         child: Container(
-                          width: 64,
-                          height: 64,
-                          decoration: const BoxDecoration(
+                          width: 72,
+                          height: 72,
+                          decoration: BoxDecoration(
                             color: AppColors.primarySoft,
                             shape: BoxShape.circle,
+                            border: Border.all(
+                              color: AppColors.primary.withValues(alpha: 0.40),
+                              width: 1.5,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.primary.withValues(alpha: 0.22),
+                                blurRadius: 20,
+                              ),
+                            ],
                           ),
                           child: const Icon(
                             Icons.check_rounded,
-                            size: 32,
-                            color: AppColors.primary,
+                            size: 34,
+                            color: AppColors.primaryBright,
                           ),
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 18),
                       Text(
                         'Fast recorded',
                         textAlign: TextAlign.center,
                         style: theme.textTheme.headlineSmall?.copyWith(
+                          fontFamily: AppColors.fontDisplay,
                           fontWeight: FontWeight.w700,
                         ),
                       ),

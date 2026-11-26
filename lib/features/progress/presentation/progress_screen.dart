@@ -38,8 +38,9 @@ class _ProgressScreenState extends State<ProgressScreen> {
               Text(
                 'Progress',
                 style: theme.textTheme.headlineSmall?.copyWith(
+                  fontFamily: AppColors.fontDisplay,
                   fontWeight: FontWeight.w700,
-                  letterSpacing: -0.3,
+                  letterSpacing: -0.4,
                 ),
               ),
               const SizedBox(height: 4),
@@ -59,15 +60,15 @@ class _ProgressScreenState extends State<ProgressScreen> {
                 selected: {_days},
                 onSelectionChanged: (s) => setState(() => _days = s.first),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               Row(
                 children: [
                   const Icon(
                     Icons.calendar_today_outlined,
                     size: 14,
-                    color: AppColors.textSecondary,
+                    color: AppColors.primary,
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 7),
                   Expanded(
                     child: Text(
                       '${formatDate(since)} – ${formatDate(now)}',
@@ -103,6 +104,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
                         icon: Icons.schedule_rounded,
                         value: _hours(stats.total),
                         label: 'Total fasting',
+                        useWarmAccent: true,
                       ),
                     ),
                   ],
@@ -119,7 +121,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
                   style: theme.textTheme.labelMedium?.copyWith(
                     color: AppColors.textSecondary,
                     fontWeight: FontWeight.w700,
-                    letterSpacing: 1.1,
+                    letterSpacing: 1.2,
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -147,7 +149,7 @@ class _BarChart extends StatelessWidget {
   final DateTime today;
   final bool showLabels;
 
-  static const _height = 148.0;
+  static const _height = 152.0;
 
   @override
   Widget build(BuildContext context) {
@@ -166,7 +168,22 @@ class _BarChart extends StatelessWidget {
     return Semantics(
       label: 'Fasting time per day. $summary',
       excludeSemantics: true,
-      child: Card(
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: AppColors.border),
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            stops: const [0.0, 0.45, 1.0],
+            colors: [
+              AppColors.surfaceTint(AppColors.primary, 0.12),
+              AppColors.surfaceTint(AppColors.primary, 0.03),
+              AppColors.surface,
+            ],
+          ),
+        ),
         child: Padding(
           padding: const EdgeInsets.all(18),
           child: Column(
@@ -186,24 +203,27 @@ class _BarChart extends StatelessWidget {
                   if (max > 0)
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
+                        horizontal: 10,
+                        vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.primarySoft,
+                        color: AppColors.accentWarmSoft,
                         borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: AppColors.accentWarm.withValues(alpha: 0.32),
+                        ),
                       ),
                       child: Text(
                         'Peak ${(max / 3600).toStringAsFixed(0)}h',
                         style: textTheme.labelSmall?.copyWith(
-                          color: AppColors.primaryDark,
+                          color: AppColors.accentWarm,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 18),
               SizedBox(
                 height: _height,
                 child: Stack(
@@ -211,9 +231,9 @@ class _BarChart extends StatelessWidget {
                     Column(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Container(height: 1, color: AppColors.surfaceSubtle),
-                        Container(height: 1, color: AppColors.surfaceSubtle),
-                        Container(height: 1, color: AppColors.border),
+                        Container(height: 1, color: AppColors.border.withValues(alpha: 0.5)),
+                        Container(height: 1, color: AppColors.border.withValues(alpha: 0.5)),
+                        Container(height: 1, color: AppColors.borderHighlight),
                       ],
                     ),
                     Row(
@@ -223,7 +243,7 @@ class _BarChart extends StatelessWidget {
                           Expanded(
                             child: Padding(
                               padding: EdgeInsets.symmetric(
-                                horizontal: showLabels ? 5 : 1.2,
+                                horizontal: showLabels ? 5 : 1.3,
                               ),
                               child: Align(
                                 alignment: Alignment.bottomCenter,
@@ -235,22 +255,36 @@ class _BarChart extends StatelessWidget {
                                         : (_height * t.total.inSeconds / max)
                                               .clamp(8.0, _height),
                                   ),
-                                  duration: const Duration(milliseconds: 280),
+                                  duration: const Duration(milliseconds: 300),
                                   curve: Curves.easeOutCubic,
                                   builder: (context, barHeight, _) {
                                     final isToday = isSameDay(t.day, today);
+                                    final isEmpty = t.total == Duration.zero;
                                     return Container(
                                       height: barHeight,
                                       decoration: BoxDecoration(
-                                        color: t.total == Duration.zero
+                                        color: isEmpty
                                             ? AppColors.border
-                                            : (isToday
-                                                  ? AppColors.primaryDark
-                                                  : AppColors.primary),
+                                            : null,
+                                        gradient: isEmpty
+                                            ? null
+                                            : LinearGradient(
+                                                begin: Alignment.topCenter,
+                                                end: Alignment.bottomCenter,
+                                                colors: isToday
+                                                    ? const [
+                                                        AppColors.accentWarm,
+                                                        AppColors.primary,
+                                                      ]
+                                                    : const [
+                                                        AppColors.primaryBright,
+                                                        AppColors.primaryDark,
+                                                      ],
+                                              ),
                                         borderRadius:
                                             const BorderRadius.vertical(
-                                              top: Radius.circular(6),
-                                              bottom: Radius.circular(2),
+                                              top: Radius.circular(8),
+                                              bottom: Radius.circular(3),
                                             ),
                                       ),
                                     );
@@ -279,7 +313,7 @@ class _BarChart extends StatelessWidget {
                               textAlign: TextAlign.center,
                               style: textTheme.labelSmall?.copyWith(
                                 color: isSameDay(t.day, today)
-                                    ? AppColors.primaryDark
+                                    ? AppColors.primaryBright
                                     : AppColors.textSecondary,
                                 fontWeight: isSameDay(t.day, today)
                                     ? FontWeight.w700

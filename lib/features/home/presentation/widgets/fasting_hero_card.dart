@@ -84,37 +84,40 @@ class _FastingHeroCardState extends State<FastingHeroCard> {
     final isActive = session != null;
     final reached = session != null && session.reachedTarget(now);
 
+    final glowColor = reached ? AppColors.accentWarm : AppColors.primary;
+
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 250),
+      duration: const Duration(milliseconds: 280),
       curve: Curves.easeOut,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(28),
+        color: AppColors.surface,
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: isActive
-              ? [
-                  AppColors.primarySoft.withValues(alpha: 0.55),
-                  AppColors.surface,
-                ]
-              : const [AppColors.surface, AppColors.surface],
+          stops: const [0.0, 0.55, 1.0],
+          colors: [
+            AppColors.surfaceTint(glowColor, isActive ? 0.17 : 0.07),
+            AppColors.surfaceTint(glowColor, isActive ? 0.05 : 0.02),
+            AppColors.surface,
+          ],
         ),
         border: Border.all(
           color: isActive
-              ? AppColors.primary.withValues(alpha: 0.35)
-              : AppColors.border,
-          width: isActive ? 1.4 : 1,
+              ? glowColor.withValues(alpha: 0.38)
+              : AppColors.borderHighlight,
+          width: isActive ? 1.3 : 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primaryDark.withValues(alpha: 0.04),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+            color: Colors.black.withValues(alpha: 0.30),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
         child: Column(
           children: [
             if (session == null)
@@ -136,15 +139,15 @@ class _FastingHeroCardState extends State<FastingHeroCard> {
                 isTargetReached: reached,
               ),
             if (session != null) ...[
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 14,
-                  vertical: 10,
+                  vertical: 11,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.background,
-                  borderRadius: BorderRadius.circular(16),
+                  color: AppColors.surfaceSubtle,
+                  borderRadius: BorderRadius.circular(18),
                   border: Border.all(color: AppColors.border),
                 ),
                 child: IntrinsicHeight(
@@ -153,6 +156,7 @@ class _FastingHeroCardState extends State<FastingHeroCard> {
                       Expanded(
                         child: _TimeInfo(
                           icon: Icons.play_circle_outline_rounded,
+                          iconColor: AppColors.primary,
                           label: 'Started',
                           value: formatWhen(session.startAt, now),
                         ),
@@ -161,6 +165,7 @@ class _FastingHeroCardState extends State<FastingHeroCard> {
                       Expanded(
                         child: _TimeInfo(
                           icon: Icons.flag_outlined,
+                          iconColor: AppColors.accentWarm,
                           label: 'Target end',
                           value: formatWhen(session.targetEndAt, now),
                         ),
@@ -174,18 +179,21 @@ class _FastingHeroCardState extends State<FastingHeroCard> {
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 14,
-                    vertical: 8,
+                    vertical: 9,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.primarySoft.withValues(alpha: 0.7),
-                    borderRadius: BorderRadius.circular(12),
+                    color: AppColors.accentWarmSoft,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: AppColors.accentWarm.withValues(alpha: 0.32),
+                    ),
                   ),
                   child: Text(
                     'You can keep going or end the session whenever you like.',
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: AppColors.primaryDark,
-                      fontWeight: FontWeight.w500,
+                      color: AppColors.accentWarm,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
@@ -212,7 +220,12 @@ class _FastingHeroCardState extends State<FastingHeroCard> {
                 width: double.infinity,
                 child: FilledButton(
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primaryDark,
+                    backgroundColor: AppColors.surfaceElevated,
+                    foregroundColor: AppColors.primaryBright,
+                    side: BorderSide(
+                      color: AppColors.primary.withValues(alpha: 0.45),
+                      width: 1.2,
+                    ),
                   ),
                   onPressed: () => _end(controller),
                   child: const Row(
@@ -225,7 +238,7 @@ class _FastingHeroCardState extends State<FastingHeroCard> {
                   ),
                 ),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 4),
               TextButton(
                 style: TextButton.styleFrom(
                   visualDensity: VisualDensity.compact,
@@ -244,11 +257,13 @@ class _FastingHeroCardState extends State<FastingHeroCard> {
 class _TimeInfo extends StatelessWidget {
   const _TimeInfo({
     required this.icon,
+    required this.iconColor,
     required this.label,
     required this.value,
   });
 
   final IconData icon;
+  final Color iconColor;
   final String label;
   final String value;
 
@@ -262,8 +277,8 @@ class _TimeInfo extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 14, color: AppColors.textSecondary),
-            const SizedBox(width: 4),
+            Icon(icon, size: 14, color: iconColor),
+            const SizedBox(width: 5),
             Flexible(
               child: Text(
                 label,
@@ -280,6 +295,7 @@ class _TimeInfo extends StatelessWidget {
           value,
           textAlign: TextAlign.center,
           style: textTheme.titleMedium?.copyWith(
+            fontFamily: AppColors.fontDisplay,
             fontWeight: FontWeight.w700,
             color: AppColors.textPrimary,
             fontFeatures: const [FontFeature.tabularFigures()],

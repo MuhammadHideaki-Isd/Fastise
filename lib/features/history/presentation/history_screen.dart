@@ -42,25 +42,29 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     child: Text(
                       'History',
                       style: theme.textTheme.headlineSmall?.copyWith(
+                        fontFamily: AppColors.fontDisplay,
                         fontWeight: FontWeight.w700,
-                        letterSpacing: -0.3,
+                        letterSpacing: -0.4,
                       ),
                     ),
                   ),
                   if (sessions.isNotEmpty)
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
+                        horizontal: 11,
+                        vertical: 5,
                       ),
                       decoration: BoxDecoration(
                         color: AppColors.primarySoft,
                         borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.32),
+                        ),
                       ),
                       child: Text(
                         '${sessions.length} logged',
                         style: theme.textTheme.labelSmall?.copyWith(
-                          color: AppColors.primaryDark,
+                          color: AppColors.primaryBright,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -102,21 +106,29 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         sessions[i].startAt,
                         sessions[i - 1].startAt,
                       )) ...[
-                    if (i != 0) const SizedBox(height: 14),
+                    if (i != 0) const SizedBox(height: 16),
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.only(bottom: 9),
                       child: Row(
                         children: [
                           Container(
-                            width: 6,
-                            height: 6,
-                            decoration: const BoxDecoration(
+                            width: 7,
+                            height: 7,
+                            decoration: BoxDecoration(
                               color: AppColors.primary,
                               shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.primary.withValues(
+                                    alpha: 0.55,
+                                  ),
+                                  blurRadius: 6,
+                                ),
+                              ],
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          Expanded(
+                          const SizedBox(width: 9),
+                          Flexible(
                             child: Text(
                               formatDate(sessions[i].startAt, full: true),
                               style: theme.textTheme.labelLarge?.copyWith(

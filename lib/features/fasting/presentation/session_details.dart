@@ -14,7 +14,7 @@ Future<void> showSessionDetailSheet(
     isScrollControlled: true,
     builder: (context) => SafeArea(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+        padding: const EdgeInsets.fromLTRB(24, 0, 24, 28),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -22,11 +22,14 @@ Future<void> showSessionDetailSheet(
             Row(
               children: [
                 Container(
-                  width: 38,
-                  height: 38,
+                  width: 40,
+                  height: 40,
                   decoration: BoxDecoration(
                     color: AppColors.primarySoft,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.32),
+                    ),
                   ),
                   child: const Icon(
                     Icons.receipt_long_outlined,
@@ -38,13 +41,15 @@ Future<void> showSessionDetailSheet(
                 Expanded(
                   child: Text(
                     'Session details',
-                    style: Theme.of(context).textTheme.titleLarge
-                        ?.copyWith(fontWeight: FontWeight.w700),
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontFamily: AppColors.fontDisplay,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 18),
             SessionDetails(session: session),
           ],
         ),
@@ -71,10 +76,13 @@ class SessionDetails extends StatelessWidget {
       children: [
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
           decoration: BoxDecoration(
-            color: AppColors.primarySoft.withValues(alpha: 0.6),
-            borderRadius: BorderRadius.circular(16),
+            color: AppColors.primarySoft,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: AppColors.primary.withValues(alpha: 0.32),
+            ),
           ),
           child: Row(
             children: [
@@ -82,7 +90,7 @@ class SessionDetails extends StatelessWidget {
                 child: Text(
                   'Duration',
                   style: textTheme.bodyMedium?.copyWith(
-                    color: AppColors.primaryDark,
+                    color: AppColors.primaryBright,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -93,7 +101,8 @@ class SessionDetails extends StatelessWidget {
                   formatDuration(actual),
                   textAlign: TextAlign.end,
                   style: textTheme.titleLarge?.copyWith(
-                    color: AppColors.primaryDark,
+                    fontFamily: AppColors.fontDisplay,
+                    color: AppColors.textPrimary,
                     fontWeight: FontWeight.w700,
                     fontFeatures: const [FontFeature.tabularFigures()],
                   ),
@@ -102,7 +111,7 @@ class SessionDetails extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         _Row('Plan', session.planNameSnapshot),
         const Divider(),
         _Row('Started', '${formatDate(start)} · ${formatTime(start)}'),
@@ -143,7 +152,8 @@ class _Row extends StatelessWidget {
               value,
               textAlign: TextAlign.end,
               style: textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w700,
+                fontFamily: AppColors.fontDisplay,
+                fontWeight: FontWeight.w600,
                 color: AppColors.textPrimary,
               ),
             ),
