@@ -49,3 +49,8 @@ app.*.map.json
 
 # GitHub Actions related
 .github
+
+# Blueprint related
+Blueprint.md
+IMPLEMENTATION_LOG.md
+antigravity-instructions.md
