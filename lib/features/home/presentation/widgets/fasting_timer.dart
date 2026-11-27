@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 
-/// Display-only timer ring. The caller supplies already-computed values;
-/// timestamp-based calculation belongs to the session logic (Task 6).
+/// Display-only timer ring modeled after the multi-segment glowing ring
+/// in the reference design. All values are computed externally from timestamps.
 class FastingTimer extends StatelessWidget {
   const FastingTimer({
     super.key,
@@ -15,6 +15,7 @@ class FastingTimer extends StatelessWidget {
     required this.caption,
     this.isActive = false,
     this.isTargetReached = false,
+    this.maxSize = 178,
   });
 
   final String statusLabel;
@@ -25,8 +26,7 @@ class FastingTimer extends StatelessWidget {
   final String caption;
   final bool isActive;
   final bool isTargetReached;
-
-  static const double _size = 196;
+  final double maxSize;
 
   @override
   Widget build(BuildContext context) {
@@ -34,12 +34,12 @@ class FastingTimer extends StatelessWidget {
     final clamped = progress.clamp(0.0, 1.0);
     final badgeBg = isTargetReached
         ? AppColors.accentWarmSoft
-        : (isActive ? AppColors.primarySoft : AppColors.surfaceElevated);
+        : (isActive ? AppColors.surfaceElevated : AppColors.surfaceElevated);
     final badgeBorder = isTargetReached
-        ? AppColors.accentWarm.withValues(alpha: 0.40)
+        ? AppColors.accentWarm.withValues(alpha: 0.42)
         : (isActive
-              ? AppColors.primary.withValues(alpha: 0.38)
-              : AppColors.border);
+              ? AppColors.primary.withValues(alpha: 0.42)
+              : AppColors.borderHighlight);
     final badgeFg = isTargetReached
         ? AppColors.accentWarm
         : (isActive ? AppColors.primaryBright : AppColors.textSecondary);
@@ -52,7 +52,7 @@ class FastingTimer extends StatelessWidget {
       excludeSemantics: true,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final ringSize = math.min(_size, constraints.maxWidth);
+          final ringSize = math.min(maxSize, constraints.maxWidth);
           return SizedBox(
             width: ringSize,
             height: ringSize,
@@ -78,8 +78,8 @@ class FastingTimer extends StatelessWidget {
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 11,
-                        vertical: 4.5,
+                        horizontal: 9,
+                        vertical: 3.5,
                       ),
                       decoration: BoxDecoration(
                         color: badgeBg,
@@ -90,28 +90,20 @@ class FastingTimer extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Container(
-                            width: 7,
-                            height: 7,
+                            width: 6,
+                            height: 6,
                             decoration: BoxDecoration(
                               color: dotColor,
                               shape: BoxShape.circle,
-                              boxShadow: isActive
-                                  ? [
-                                      BoxShadow(
-                                        color: dotColor.withValues(alpha: 0.65),
-                                        blurRadius: 6,
-                                      ),
-                                    ]
-                                  : null,
                             ),
                           ),
-                          const SizedBox(width: 6),
+                          const SizedBox(width: 5),
                           Flexible(
                             child: FittedBox(
                               fit: BoxFit.scaleDown,
                               child: Text(
                                 statusLabel,
-                                style: textTheme.labelMedium?.copyWith(
+                                style: textTheme.labelSmall?.copyWith(
                                   color: badgeFg,
                                   fontWeight: FontWeight.w700,
                                 ),
@@ -121,21 +113,21 @@ class FastingTimer extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 11),
+                    const SizedBox(height: 8),
                     FittedBox(
                       fit: BoxFit.scaleDown,
                       child: Text(
                         timeText,
-                        style: textTheme.displaySmall?.copyWith(
+                        style: textTheme.headlineMedium?.copyWith(
                           fontFamily: AppColors.fontDisplay,
                           color: AppColors.textPrimary,
                           fontWeight: FontWeight.w700,
-                          letterSpacing: -1.0,
+                          letterSpacing: -0.9,
                           fontFeatures: const [FontFeature.tabularFigures()],
                         ),
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     FittedBox(
                       fit: BoxFit.scaleDown,
                       child: Text(
@@ -160,6 +152,89 @@ class FastingTimer extends StatelessWidget {
   }
 }
 
+/// Vertical segmented equalizer-bar metric row modeled after the right column
+/// next to the ring in the reference Nutrition screen.
+class EqualizerMetricRow extends StatelessWidget {
+  const EqualizerMetricRow({
+    super.key,
+    required this.value,
+    required this.label,
+    required this.fillRatio,
+    this.accent = AppColors.primary,
+  });
+
+  final String value;
+  final String label;
+
+  /// 0..1 fraction of vertical bars illuminated.
+  final double fillRatio;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    const totalBars = 7;
+    final litBars = (fillRatio.clamp(0.0, 1.0) * totalBars).round();
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (var i = totalBars - 1; i >= 0; i--) ...[
+              Container(
+                width: 11,
+                height: 2.6,
+                decoration: BoxDecoration(
+                  color: i < litBars
+                      ? accent
+                      : AppColors.border.withValues(alpha: 0.9),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+              if (i != 0) const SizedBox(height: 2),
+            ],
+          ],
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  value,
+                  maxLines: 1,
+                  style: textTheme.titleSmall?.copyWith(
+                    fontFamily: AppColors.fontDisplay,
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 1),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: textTheme.labelSmall?.copyWith(
+                  color: accent,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _FastingRingPainter extends CustomPainter {
   const _FastingRingPainter({
     required this.progress,
@@ -173,12 +248,11 @@ class _FastingRingPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    const strokeWidth = 14.0;
+    const strokeWidth = 12.5;
     final center = Offset(size.width / 2, size.height / 2);
     final radius = (math.min(size.width, size.height) - strokeWidth - 6) / 2;
-    final innerRadius = radius - strokeWidth * 0.9;
 
-    // Subtle recessed dark inner dial with ambient glow
+    // Subtle recessed inner dark circle
     final innerAccent = isTargetReached
         ? AppColors.accentWarm
         : AppColors.primary;
@@ -186,48 +260,57 @@ class _FastingRingPainter extends CustomPainter {
       ..shader = RadialGradient(
         colors: [
           isActive
-              ? innerAccent.withValues(alpha: 0.12)
-              : AppColors.surfaceElevated.withValues(alpha: 0.55),
-          AppColors.surfaceSubtle.withValues(alpha: 0.85),
+              ? innerAccent.withValues(alpha: 0.10)
+              : AppColors.surfaceElevated.withValues(alpha: 0.35),
+          AppColors.background.withValues(alpha: 0.70),
         ],
-      ).createShader(Rect.fromCircle(center: center, radius: innerRadius));
-    canvas.drawCircle(center, innerRadius, dialPaint);
+      ).createShader(Rect.fromCircle(center: center, radius: radius - 6));
+    canvas.drawCircle(center, radius - strokeWidth * 0.6, dialPaint);
 
-    // Base ring track
+    // Base thick dark track matching the reference gauge
     final trackPaint = Paint()
-      ..color = const Color(0xFF242B27)
+      ..color = const Color(0xFF282E2B)
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth;
     canvas.drawCircle(center, radius, trackPaint);
 
-    // 24 precision hour ticks inside the track (quarter milestones highlighted)
-    for (var i = 0; i < 24; i++) {
-      final isQuarter = i % 6 == 0;
-      final angle = -math.pi / 2 + (i * 2 * math.pi / 24);
-      final innerOffset = radius - strokeWidth * (isQuarter ? 0.98 : 0.92);
-      final outerOffset = radius - strokeWidth * 0.72;
-      final p1 = Offset(
-        center.dx + innerOffset * math.cos(angle),
-        center.dy + innerOffset * math.sin(angle),
-      );
-      final p2 = Offset(
-        center.dx + outerOffset * math.cos(angle),
-        center.dy + outerOffset * math.sin(angle),
-      );
-      final tickPaint = Paint()
-        ..color = isQuarter
-            ? AppColors.primaryMuted.withValues(alpha: 0.95)
-            : AppColors.border.withValues(alpha: 0.75)
-        ..strokeWidth = isQuarter ? 2.0 : 1.2
-        ..strokeCap = StrokeCap.round;
-      canvas.drawLine(p1, p2, tickPaint);
-    }
+    final arcRect = Rect.fromCircle(center: center, radius: radius);
 
-    if (progress <= 0) return;
+    // Subtle decorative dual-tone resting segments when idle so the ring
+    // feels rich like the segmented reference gauge even before starting.
+    if (!isActive || progress <= 0) {
+      final sageHint = Paint()
+        ..color = AppColors.primary.withValues(alpha: 0.35)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..strokeCap = StrokeCap.round;
+      canvas.drawArc(arcRect, -math.pi * 0.42, math.pi * 0.38, false, sageHint);
+
+      final sandHint = Paint()
+        ..color = AppColors.accentWarm.withValues(alpha: 0.32)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..strokeCap = StrokeCap.round;
+      canvas.drawArc(arcRect, math.pi * 0.28, math.pi * 0.34, false, sandHint);
+      return;
+    }
 
     final clamped = progress.clamp(0.0, 1.0);
     final sweepAngle = 2 * math.pi * clamped;
-    final arcRect = Rect.fromCircle(center: center, radius: radius);
+
+    // Companion subtle Warm Sand accent segment on the remaining tail
+    if (clamped < 0.85) {
+      final tailStart = -math.pi / 2 + sweepAngle + 0.16;
+      final tailSweep = math.min(0.45, (2 * math.pi - sweepAngle) - 0.32);
+      if (tailSweep > 0.08) {
+        final tailPaint = Paint()
+          ..color = AppColors.accentWarm.withValues(alpha: 0.55)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = strokeWidth
+          ..strokeCap = StrokeCap.round;
+        canvas.drawArc(arcRect, tailStart, tailSweep, false, tailPaint);
+      }
+    }
 
     final startColor = AppColors.primaryDark;
     final endColor = isTargetReached
@@ -237,9 +320,9 @@ class _FastingRingPainter extends CustomPainter {
         ? AppColors.accentWarm
         : AppColors.primary;
 
-    // Soft outer halo behind the active progress arc
+    // Soft outer glow behind the active arc
     final glowPaint = Paint()
-      ..color = glowColor.withValues(alpha: 0.26)
+      ..color = glowColor.withValues(alpha: 0.25)
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth + 4
       ..strokeCap = StrokeCap.round
@@ -249,39 +332,31 @@ class _FastingRingPainter extends CustomPainter {
     // Seamless gradient progress arc
     final progressPaint = Paint()
       ..shader = SweepGradient(
-        colors: [
-          startColor,
-          AppColors.primary,
-          endColor,
-          startColor,
-        ],
+        colors: [startColor, AppColors.primary, endColor, startColor],
         stops: const [0.0, 0.45, 0.96, 1.0],
         transform: const GradientRotation(-math.pi / 2),
       ).createShader(arcRect)
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round;
-
     canvas.drawArc(arcRect, -math.pi / 2, sweepAngle, false, progressPaint);
 
-    // Clean start cap to mask any SweepGradient wrap seam
     if (clamped < 0.98) {
-      final startCapCenter = Offset(center.dx, center.dy - radius);
       canvas.drawCircle(
-        startCapCenter,
+        Offset(center.dx, center.dy - radius),
         strokeWidth / 2,
         Paint()..color = startColor,
       );
     }
 
-    // Glowing indicator jewel at the leading tip of the arc
+    // Crisp leading tip jewel
     final endAngle = -math.pi / 2 + sweepAngle;
     final tipCenter = Offset(
       center.dx + radius * math.cos(endAngle),
       center.dy + radius * math.sin(endAngle),
     );
     canvas.drawCircle(tipCenter, strokeWidth / 2, Paint()..color = endColor);
-    canvas.drawCircle(tipCenter, 3.4, Paint()..color = AppColors.onPrimary);
+    canvas.drawCircle(tipCenter, 3.0, Paint()..color = AppColors.onPrimary);
   }
 
   @override

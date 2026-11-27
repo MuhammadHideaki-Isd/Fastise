@@ -7,9 +7,9 @@ import '../../../../shared/utils/formatters.dart';
 import '../../../fasting/domain/fasting_session.dart';
 import '../../../fasting/domain/fasting_stats.dart';
 
-/// Compact Mon–Sun calendar strip inspired by modern wellness trackers.
-/// Shows each day of the current week with a progress ring reflecting
-/// completed or running fasting activity.
+/// Borderless Mon–Sun calendar strip modeled after the reference Nutrition screen:
+/// logged days appear inside filled circular badges (Soft Sage Mint for active/logged,
+/// Warm Sand for target reached) while inactive days remain crisp minimal numerals.
 class WeekStripCard extends StatelessWidget {
   const WeekStripCard({
     super.key,
@@ -58,84 +58,13 @@ class WeekStripCard extends StatelessWidget {
       );
     }
 
-    final textTheme = Theme.of(context).textTheme;
-
     return Semantics(
       label: 'Weekly rhythm, $loggedDays of 7 days active this week',
       excludeSemantics: true,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Weekly rhythm',
-                      overflow: TextOverflow.ellipsis,
-                      style: textTheme.labelMedium?.copyWith(
-                        color: AppColors.textSecondary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 9,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: loggedDays > 0
-                          ? AppColors.primarySoft
-                          : AppColors.surfaceSubtle,
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(
-                        color: loggedDays > 0
-                            ? AppColors.primary.withValues(alpha: 0.30)
-                            : AppColors.border,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.bolt_rounded,
-                          size: 13,
-                          color: loggedDays > 0
-                              ? AppColors.primary
-                              : AppColors.textSecondary,
-                        ),
-                        const SizedBox(width: 3),
-                        Text(
-                          '$loggedDays/7 active',
-                          style: textTheme.labelSmall?.copyWith(
-                            color: loggedDays > 0
-                                ? AppColors.primaryBright
-                                : AppColors.textSecondary,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                height: 58,
-                child: CustomPaint(
-                  painter: _WeekStripPainter(entries: entries),
-                ),
-              ),
-            ],
-          ),
+      child: SizedBox(
+        height: 62,
+        child: CustomPaint(
+          painter: _WeekStripPainter(entries: entries),
         ),
       ),
     );
@@ -167,7 +96,7 @@ class _WeekStripPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (entries.isEmpty) return;
     final slotWidth = size.width / entries.length;
-    final circleRadius = math.min(16.5, (slotWidth - 6) / 2);
+    final circleRadius = math.min(17.5, (slotWidth - 6) / 2);
     final circleY = size.height - circleRadius - 2;
 
     for (var i = 0; i < entries.length; i++) {
@@ -181,9 +110,9 @@ class _WeekStripPainter extends CustomPainter {
           text: e.label,
           style: TextStyle(
             fontFamily: AppColors.fontBody,
-            fontSize: 11,
+            fontSize: 11.5,
             fontWeight: e.isToday ? FontWeight.w700 : FontWeight.w500,
-            color: e.isToday ? AppColors.primaryBright : AppColors.textSecondary,
+            color: e.isToday ? AppColors.textPrimary : AppColors.textSecondary,
           ),
         ),
         textDirection: TextDirection.ltr,
@@ -193,58 +122,55 @@ class _WeekStripPainter extends CustomPainter {
         Offset(cx - dayLabelPainter.width / 2, 0),
       );
 
-      // Day circle fill
-      final fillColor = e.reachedTarget
-          ? AppColors.accentWarmSoft
-          : (e.isToday
-                ? AppColors.primarySoft
-                : (e.progress > 0
-                      ? AppColors.primarySoft.withValues(alpha: 0.55)
-                      : AppColors.surfaceSubtle));
-      canvas.drawCircle(center, circleRadius, Paint()..color = fillColor);
+      final hasFilledBadge = e.reachedTarget || e.progress > 0;
 
-      // Base ring track
-      final trackPaint = Paint()
-        ..color = e.isToday
-            ? AppColors.primary.withValues(alpha: 0.35)
-            : AppColors.border
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.2;
-      canvas.drawCircle(center, circleRadius - 1.1, trackPaint);
-
-      // Active progress ring around the day number
-      if (e.progress > 0) {
-        final arcPaint = Paint()
-          ..color = e.reachedTarget ? AppColors.accentWarm : AppColors.primary
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2.4
-          ..strokeCap = StrokeCap.round;
-        canvas.drawArc(
-          Rect.fromCircle(center: center, radius: circleRadius - 1.1),
-          -math.pi / 2,
-          2 * math.pi * e.progress,
-          false,
-          arcPaint,
+      if (hasFilledBadge) {
+        final badgeColor = e.reachedTarget
+            ? AppColors.accentWarm
+            : AppColors.primary;
+        // Subtle outer halo ring matching the reference's glowing day dots
+        canvas.drawCircle(
+          center,
+          circleRadius + 1.5,
+          Paint()
+            ..color = badgeColor.withValues(alpha: 0.24)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2.0,
+        );
+        // Solid filled circle
+        canvas.drawCircle(center, circleRadius - 1, Paint()..color = badgeColor);
+      } else if (e.isToday) {
+        // Subtle outlined circle for today when idle
+        canvas.drawCircle(
+          center,
+          circleRadius - 1,
+          Paint()..color = AppColors.surfaceElevated,
+        );
+        canvas.drawCircle(
+          center,
+          circleRadius - 1,
+          Paint()
+            ..color = AppColors.primary.withValues(alpha: 0.70)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.8,
         );
       }
 
-      // Day number inside circle
+      // Day number inside circle (dark bold on filled badge, light otherwise)
+      final numColor = hasFilledBadge
+          ? AppColors.onPrimary
+          : (e.isToday ? AppColors.textPrimary : AppColors.textSecondary);
+
       final numPainter = TextPainter(
         text: TextSpan(
           text: '${e.dayNumber}',
           style: TextStyle(
             fontFamily: AppColors.fontDisplay,
-            fontSize: circleRadius < 14 ? 10 : 11.5,
-            fontWeight: e.isToday || e.progress > 0
+            fontSize: circleRadius < 14 ? 10.5 : 12.0,
+            fontWeight: hasFilledBadge || e.isToday
                 ? FontWeight.w700
                 : FontWeight.w500,
-            color: e.reachedTarget
-                ? AppColors.accentWarm
-                : (e.isToday
-                      ? AppColors.textPrimary
-                      : (e.progress > 0
-                            ? AppColors.primaryBright
-                            : AppColors.textSecondary)),
+            color: numColor,
           ),
         ),
         textDirection: TextDirection.ltr,

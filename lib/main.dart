@@ -11,6 +11,7 @@ Future<void> main() async {
   runApp(
     FastiseApp(
       controller: FastingController(repository: FastingRepository(prefs)),
+      showLaunchFlow: true,
     ),
   );
 }

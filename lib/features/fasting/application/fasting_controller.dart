@@ -6,17 +6,20 @@ import '../data/fasting_repository.dart';
 import '../domain/fasting_plan.dart';
 import '../domain/fasting_session.dart';
 
-/// App-wide fasting state: selected plan, the single active session, and
-/// completed sessions. With a [repository], state is restored on creation
-/// and saved after every change.
+/// App-wide fasting state: selected plan, the single active session,
+/// completed sessions, and first-launch onboarding state. With a [repository],
+/// state is restored on creation and saved after every change.
 class FastingController extends ChangeNotifier {
   FastingController({
     FastingPlan plan = FastingPlan.defaultPlan,
     DateTime Function()? clock,
     FastingRepository? repository,
+    bool? hasSeenOnboarding,
   }) : _repo = repository,
        _selectedPlan = repository?.loadPlan() ?? plan,
        _active = repository?.loadActive(),
+       _hasSeenOnboarding =
+           hasSeenOnboarding ?? repository?.loadHasSeenOnboarding() ?? false,
        now = clock ?? DateTime.now {
     if (repository != null) _completed.addAll(repository.loadCompleted());
   }
@@ -28,13 +31,23 @@ class FastingController extends ChangeNotifier {
   FastingPlan _selectedPlan;
   FastingSession? _active;
   final List<FastingSession> _completed = [];
+  bool _hasSeenOnboarding;
 
   FastingPlan get selectedPlan => _selectedPlan;
   FastingSession? get activeSession => _active;
   bool get isFasting => _active != null;
+  bool get hasSeenOnboarding => _hasSeenOnboarding;
 
   /// Completed sessions, newest first.
   List<FastingSession> get sessions => List.unmodifiable(_completed);
+
+  /// Marks the first-time user guide as completed and persists it locally.
+  void completeOnboarding() {
+    if (_hasSeenOnboarding) return;
+    _hasSeenOnboarding = true;
+    unawaited(_repo?.saveHasSeenOnboarding(true));
+    notifyListeners();
+  }
 
   /// Changing the plan never touches a running session: it keeps its snapshot.
   void selectPlan(FastingPlan plan) {
@@ -81,6 +94,7 @@ class FastingController extends ChangeNotifier {
     _selectedPlan = FastingPlan.defaultPlan;
     _active = null;
     _completed.clear();
+    _hasSeenOnboarding = false;
     unawaited(_repo?.clearAll());
     notifyListeners();
   }

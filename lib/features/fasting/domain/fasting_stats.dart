@@ -66,3 +66,42 @@ List<({DateTime day, Duration total})> dailyTotals(
       }(),
   ];
 }
+
+/// Consecutive days with at least one completed (or currently active) fast.
+/// Following Duolingo-style streak rules, yesterday's streak stays alive
+/// throughout today until the user logs today's session.
+int currentStreakDays(
+  List<FastingSession> sessions,
+  DateTime now, {
+  FastingSession? activeSession,
+}) {
+  DateTime dayOnly(DateTime d) => DateTime(d.year, d.month, d.day);
+
+  final activeDays = <DateTime>{
+    for (final s in sessions)
+      if (s.status == SessionStatus.completed) dayOnly(s.startAt),
+  };
+
+  final today = dayOnly(now);
+  if (activeSession != null) {
+    activeDays.add(dayOnly(activeSession.startAt));
+    activeDays.add(today);
+  }
+
+  final yesterday = DateTime(today.year, today.month, today.day - 1);
+  DateTime cursor;
+  if (activeDays.contains(today)) {
+    cursor = today;
+  } else if (activeDays.contains(yesterday)) {
+    cursor = yesterday;
+  } else {
+    return 0;
+  }
+
+  var streak = 0;
+  while (activeDays.contains(cursor)) {
+    streak++;
+    cursor = DateTime(cursor.year, cursor.month, cursor.day - 1);
+  }
+  return streak;
+}

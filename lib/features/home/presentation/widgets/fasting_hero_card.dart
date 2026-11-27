@@ -10,8 +10,8 @@ import '../../../fasting/application/fasting_scope.dart';
 import '../../../fasting/presentation/session_summary_screen.dart';
 import 'fasting_timer.dart';
 
-/// Timer ring + primary CTA. While a session is active it repaints every
-/// second, but every value is recomputed from `session.startAt`.
+/// Timer ring paired with 3 vertical-tick equalizer metrics (modeled after
+/// the central Nutrition screen in the reference) and the primary pill CTA.
 class FastingHeroCard extends StatefulWidget {
   const FastingHeroCard({super.key});
 
@@ -79,131 +79,180 @@ class _FastingHeroCardState extends State<FastingHeroCard> {
   Widget build(BuildContext context) {
     final FastingController controller = FastingScope.of(context);
     final session = controller.activeSession;
+    final plan = controller.selectedPlan;
     final now = controller.now();
     final theme = Theme.of(context);
     final isActive = session != null;
     final reached = session != null && session.reachedTarget(now);
-
+    final progress = session?.progress(now) ?? 0.0;
     final glowColor = reached ? AppColors.accentWarm : AppColors.primary;
+
+    final timerWidget = session == null
+        ? FastingTimer(
+            statusLabel: 'Not fasting',
+            timeText: '00:00:00',
+            progress: 0,
+            caption: 'Target ${plan.fastingHours} h',
+          )
+        : FastingTimer(
+            statusLabel: 'Fasting',
+            timeText: formatClock(session.elapsed(now)),
+            progress: progress,
+            caption: reached
+                ? 'Target reached'
+                : '${formatDuration(session.remaining(now))} left',
+            isActive: true,
+            isTargetReached: reached,
+          );
+
+    final metricsColumn = session == null
+        ? Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              EqualizerMetricRow(
+                value: '${plan.fastingHours} h',
+                label: 'Fast goal',
+                fillRatio: plan.fastingHours / 24,
+                accent: AppColors.primary,
+              ),
+              const SizedBox(height: 14),
+              EqualizerMetricRow(
+                value: '${plan.eatingHours} h',
+                label: 'Eat window',
+                fillRatio: plan.eatingHours / 24,
+                accent: AppColors.accentWarm,
+              ),
+              const SizedBox(height: 14),
+              EqualizerMetricRow(
+                value: '${(plan.fastingHours / 24 * 100).round()}%',
+                label: 'Daily ratio',
+                fillRatio: plan.fastingHours / 24,
+                accent: AppColors.primaryBright,
+              ),
+            ],
+          )
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              EqualizerMetricRow(
+                value: formatWhen(session.startAt, now),
+                label: 'Started',
+                fillRatio: 1.0,
+                accent: AppColors.primary,
+              ),
+              const SizedBox(height: 14),
+              EqualizerMetricRow(
+                value: formatWhen(session.targetEndAt, now),
+                label: 'Target end',
+                fillRatio: reached ? 1.0 : 0.55,
+                accent: AppColors.accentWarm,
+              ),
+              const SizedBox(height: 14),
+              EqualizerMetricRow(
+                value: '${(progress * 100).round()}%',
+                label: 'Completed',
+                fillRatio: progress.clamp(0.15, 1.0),
+                accent: reached ? AppColors.accentWarm : AppColors.primaryBright,
+              ),
+            ],
+          );
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 280),
       curve: Curves.easeOut,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(26),
         color: AppColors.surface,
         gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
           stops: const [0.0, 0.55, 1.0],
           colors: [
-            AppColors.surfaceTint(glowColor, isActive ? 0.17 : 0.07),
-            AppColors.surfaceTint(glowColor, isActive ? 0.05 : 0.02),
+            AppColors.surfaceTint(glowColor, isActive ? 0.14 : 0.07),
+            AppColors.surfaceTint(glowColor, isActive ? 0.04 : 0.02),
             AppColors.surface,
           ],
         ),
         border: Border.all(
           color: isActive
-              ? glowColor.withValues(alpha: 0.38)
-              : AppColors.borderHighlight,
-          width: isActive ? 1.3 : 1,
+              ? glowColor.withValues(alpha: 0.36)
+              : AppColors.border,
+          width: isActive ? 1.2 : 1,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.30),
-            blurRadius: 24,
-            offset: const Offset(0, 10),
-          ),
-        ],
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
+        padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
         child: Column(
           children: [
-            if (session == null)
-              FastingTimer(
-                statusLabel: 'Not fasting',
-                timeText: '00:00:00',
-                progress: 0,
-                caption: 'Target ${controller.selectedPlan.fastingHours} h',
-              )
-            else
-              FastingTimer(
-                statusLabel: 'Fasting',
-                timeText: formatClock(session.elapsed(now)),
-                progress: session.progress(now),
-                caption: reached
-                    ? 'Target reached'
-                    : '${formatDuration(session.remaining(now))} left',
-                isActive: true,
-                isTargetReached: reached,
-              ),
-            if (session != null) ...[
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 11,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceSubtle,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: IntrinsicHeight(
-                  child: Row(
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final textScale = MediaQuery.textScalerOf(context).scale(1.0);
+                final sideBySide =
+                    constraints.maxWidth >= 285 && textScale <= 1.35;
+                if (sideBySide) {
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Expanded(
-                        child: _TimeInfo(
-                          icon: Icons.play_circle_outline_rounded,
-                          iconColor: AppColors.primary,
-                          label: 'Started',
-                          value: formatWhen(session.startAt, now),
-                        ),
+                        flex: 11,
+                        child: Center(child: timerWidget),
                       ),
-                      const VerticalDivider(width: 20),
+                      const SizedBox(width: 14),
                       Expanded(
-                        child: _TimeInfo(
-                          icon: Icons.flag_outlined,
-                          iconColor: AppColors.accentWarm,
-                          label: 'Target end',
-                          value: formatWhen(session.targetEndAt, now),
-                        ),
+                        flex: 9,
+                        child: metricsColumn,
                       ),
                     ],
+                  );
+                }
+                return Column(
+                  children: [
+                    timerWidget,
+                    const SizedBox(height: 14),
+                    metricsColumn,
+                  ],
+                );
+              },
+            ),
+            if (reached) ...[
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 9,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.accentWarmSoft,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: AppColors.accentWarm.withValues(alpha: 0.32),
+                  ),
+                ),
+                child: Text(
+                  'You can keep going or end the session whenever you like.',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppColors.accentWarm,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
-              if (reached) ...[
-                const SizedBox(height: 10),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 9,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.accentWarmSoft,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: AppColors.accentWarm.withValues(alpha: 0.32),
-                    ),
-                  ),
-                  child: Text(
-                    'You can keep going or end the session whenever you like.',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: AppColors.accentWarm,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
             ],
-            const SizedBox(height: 18),
+            const SizedBox(height: 16),
+            // Sleek full-width pill action bar (like the reference's Check calories pill)
             if (session == null)
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(0, 50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
                   onPressed: controller.startFasting,
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
@@ -220,11 +269,15 @@ class _FastingHeroCardState extends State<FastingHeroCard> {
                 width: double.infinity,
                 child: FilledButton(
                   style: FilledButton.styleFrom(
+                    minimumSize: const Size(0, 50),
                     backgroundColor: AppColors.surfaceElevated,
                     foregroundColor: AppColors.primaryBright,
                     side: BorderSide(
                       color: AppColors.primary.withValues(alpha: 0.45),
                       width: 1.2,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(999),
                     ),
                   ),
                   onPressed: () => _end(controller),
@@ -238,7 +291,7 @@ class _FastingHeroCardState extends State<FastingHeroCard> {
                   ),
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 2),
               TextButton(
                 style: TextButton.styleFrom(
                   visualDensity: VisualDensity.compact,
@@ -250,58 +303,6 @@ class _FastingHeroCardState extends State<FastingHeroCard> {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _TimeInfo extends StatelessWidget {
-  const _TimeInfo({
-    required this.icon,
-    required this.iconColor,
-    required this.label,
-    required this.value,
-  });
-
-  final IconData icon;
-  final Color iconColor;
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 14, color: iconColor),
-            const SizedBox(width: 5),
-            Flexible(
-              child: Text(
-                label,
-                overflow: TextOverflow.ellipsis,
-                style: textTheme.bodySmall?.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          textAlign: TextAlign.center,
-          style: textTheme.titleMedium?.copyWith(
-            fontFamily: AppColors.fontDisplay,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
-            fontFeatures: const [FontFeature.tabularFigures()],
-          ),
-        ),
-      ],
     );
   }
 }

@@ -29,12 +29,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
         : all;
 
     return SafeArea(
+      bottom: false,
       child: Align(
         alignment: Alignment.topCenter,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 600),
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
             children: [
               Row(
                 children: [

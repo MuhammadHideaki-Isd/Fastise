@@ -5,8 +5,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../domain/fasting_plan.dart';
 import '../domain/fasting_session.dart';
 
-/// Local storage for the selected plan and sessions. Reads never throw:
-/// missing or malformed data falls back to defaults (or drops bad entries).
+/// Local storage for the selected plan, sessions, and onboarding flag.
+/// Reads never throw: missing or malformed data falls back to defaults
+/// (or drops bad entries).
 class FastingRepository {
   FastingRepository(this._prefs);
 
@@ -15,6 +16,15 @@ class FastingRepository {
   static const _planKey = 'selected_plan_id';
   static const _activeKey = 'active_session';
   static const _completedKey = 'completed_sessions';
+  static const _onboardingKey = 'has_seen_onboarding';
+
+  bool loadHasSeenOnboarding() {
+    try {
+      return _prefs.getBool(_onboardingKey) ?? false;
+    } catch (_) {
+      return false; // stored with an unexpected type
+    }
+  }
 
   FastingPlan loadPlan() =>
       FastingPlan.byId(_readString(_planKey)) ?? FastingPlan.defaultPlan;
@@ -37,6 +47,9 @@ class FastingRepository {
     return sessions;
   }
 
+  Future<void> saveHasSeenOnboarding(bool seen) =>
+      _prefs.setBool(_onboardingKey, seen);
+
   Future<void> savePlan(FastingPlan plan) =>
       _prefs.setString(_planKey, plan.id);
 
@@ -53,6 +66,7 @@ class FastingRepository {
     await _prefs.remove(_planKey);
     await _prefs.remove(_activeKey);
     await _prefs.remove(_completedKey);
+    await _prefs.remove(_onboardingKey);
   }
 
   String? _readString(String key) {

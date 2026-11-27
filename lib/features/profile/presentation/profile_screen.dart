@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../shared/widgets/confirmation_dialog.dart';
+import '../../../shared/widgets/fasty_mascot.dart';
 import '../../fasting/application/fasting_scope.dart';
 import '../../fasting/presentation/plan_selection_screen.dart';
+import '../../onboarding/presentation/onboarding_screen.dart';
+import '../../widget/data/home_widget_sync.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -15,12 +18,13 @@ class ProfileScreen extends StatelessWidget {
     final theme = Theme.of(context);
 
     return SafeArea(
+      bottom: false,
       child: Align(
         alignment: Alignment.topCenter,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 600),
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
             children: [
               Text(
                 'Profile',
@@ -211,6 +215,73 @@ class ProfileScreen extends StatelessWidget {
                     'are still growing.',
               ),
               const SizedBox(height: 26),
+              const _SectionLabel('HOME SCREEN WIDGET'),
+              const SizedBox(height: 10),
+              _WidgetPreviewCard(snapshot: WidgetSnapshot.fromController(controller)),
+              const SizedBox(height: 26),
+              const _SectionLabel('GUIDE'),
+              const SizedBox(height: 10),
+              Card(
+                clipBehavior: Clip.antiAlias,
+                child: InkWell(
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const OnboardingScreen(isReplay: true),
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: AppColors.primarySoft,
+                            borderRadius: BorderRadius.circular(11),
+                            border: Border.all(
+                              color: AppColors.primary.withValues(alpha: 0.28),
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.menu_book_rounded,
+                            size: 19,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'App guide',
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontFamily: AppColors.fontDisplay,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                'Review how Fastise works anytime.',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Icon(
+                          Icons.chevron_right_rounded,
+                          color: AppColors.textSecondary,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 26),
               const _SectionLabel('DATA'),
               const SizedBox(height: 10),
               OutlinedButton.icon(
@@ -323,6 +394,137 @@ class _InfoCard extends StatelessWidget {
                   ),
                 ],
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _WidgetPreviewCard extends StatelessWidget {
+  const _WidgetPreviewCard({required this.snapshot});
+
+  final WidgetSnapshot snapshot;
+
+  Future<void> _pinWidget(BuildContext context) async {
+    final pinned = await HomeWidgetSync.instance.requestPinWidget();
+    if (!context.mounted) return;
+    final message = pinned
+        ? 'Follow the system prompt to add the Fastise widget to your Home screen.'
+        : 'Long-press an empty space on your phone Home screen, open Widgets, and pick Fastise.';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: AppColors.surfaceElevated,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isWarm = snapshot.mood == WidgetMood.targetReached;
+    final accent = isWarm ? AppColors.accentWarm : AppColors.primary;
+    final accentSoft = isWarm
+        ? AppColors.accentWarmSoft
+        : AppColors.primarySoft;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: accent.withValues(alpha: 0.42)),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.surfaceTint(accent, 0.16),
+            AppColors.surface,
+          ],
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                FastyMascot(mood: snapshot.mood, size: 60),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 9,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: accentSoft,
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(
+                            color: accent.withValues(alpha: 0.35),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.local_fire_department_rounded,
+                              size: 13,
+                              color: accent,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              snapshot.streakDays == 0
+                                  ? 'Start Day 1'
+                                  : '${snapshot.streakDays} day streak',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: accent,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        snapshot.headline,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontFamily: AppColors.fontDisplay,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        snapshot.subtext,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            OutlinedButton.icon(
+              onPressed: () => _pinWidget(context),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: accent,
+                side: BorderSide(color: accent.withValues(alpha: 0.45)),
+                minimumSize: const Size.fromHeight(46),
+              ),
+              icon: const Icon(Icons.widgets_outlined, size: 18),
+              label: const Text('Add widget to Home screen'),
             ),
           ],
         ),

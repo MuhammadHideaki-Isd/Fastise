@@ -28,12 +28,13 @@ class _ProgressScreenState extends State<ProgressScreen> {
     final totals = dailyTotals(inRange, now, _days);
 
     return SafeArea(
+      bottom: false,
       child: Align(
         alignment: Alignment.topCenter,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 600),
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
             children: [
               Text(
                 'Progress',
@@ -88,32 +89,60 @@ class _ProgressScreenState extends State<ProgressScreen> {
                   message: 'Finish a fast and your totals will show up here.',
                 )
               else ...[
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: StatCard(
-                        icon: Icons.check_circle_outline_rounded,
-                        value: '${stats.count}',
-                        label: 'Sessions',
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: StatCard(
-                        icon: Icons.schedule_rounded,
-                        value: _hours(stats.total),
-                        label: 'Total fasting',
-                        useWarmAccent: true,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                StatCard(
-                  icon: Icons.timelapse_rounded,
-                  value: formatDuration(stats.average!),
-                  label: 'Average session',
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final textScale = MediaQuery.textScalerOf(context).scale(1.0);
+                    final threeCol =
+                        constraints.maxWidth >= 300 && textScale <= 1.3;
+                    final sessionsCard = StatCard(
+                      compact: threeCol,
+                      icon: Icons.check_circle_outline_rounded,
+                      value: '${stats.count}',
+                      label: 'Sessions',
+                      sublabel: 'completed',
+                    );
+                    final totalCard = StatCard(
+                      compact: threeCol,
+                      icon: Icons.schedule_rounded,
+                      value: _hours(stats.total),
+                      label: 'Total fasting',
+                      sublabel: 'in $_days d',
+                      useWarmAccent: true,
+                    );
+                    final avgCard = StatCard(
+                      compact: threeCol,
+                      icon: Icons.timelapse_rounded,
+                      value: formatDuration(stats.average!),
+                      label: 'Average session',
+                      sublabel: 'per fast',
+                    );
+                    if (threeCol) {
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(child: sessionsCard),
+                          const SizedBox(width: 10),
+                          Expanded(child: totalCard),
+                          const SizedBox(width: 10),
+                          Expanded(child: avgCard),
+                        ],
+                      );
+                    }
+                    return Column(
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(child: sessionsCard),
+                            const SizedBox(width: 12),
+                            Expanded(child: totalCard),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        avgCard,
+                      ],
+                    );
+                  },
                 ),
                 const SizedBox(height: 26),
                 Text(
